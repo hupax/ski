@@ -10,6 +10,6 @@ import org.springframework.context.annotation.Configuration;
 public class VideoConfig {
 
     private String tempPath = "/Users/hupax/ski/temp";
-    private Integer windowSize = 30;
-    private Integer windowStep = 20;
+    private Integer windowSize = 15;  // Overridden by application.yml: ${VIDEO_WINDOW_SIZE:15}
+    private Integer windowStep = 10;  // Overridden by application.yml: ${VIDEO_WINDOW_STEP:10}
 }
