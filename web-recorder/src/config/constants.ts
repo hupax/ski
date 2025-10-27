@@ -21,9 +21,10 @@ export const WS_ENDPOINTS = {
 
 // ========== Recording Configuration ==========
 
+// Mutable recording config that can be updated from server
 export const RECORDING_CONFIG = {
-  // Chunk duration in milliseconds (30 seconds)
-  CHUNK_DURATION: 30000,
+  // Chunk duration in milliseconds (will be updated from server config)
+  CHUNK_DURATION: 35000, // Default: 35 seconds (windowSize=15 + 2*windowStep=20)
 
   // Video constraints
   VIDEO_CONSTRAINTS: {
@@ -37,7 +38,16 @@ export const RECORDING_CONFIG = {
     mimeType: 'video/webm;codecs=vp8,opus',
     videoBitsPerSecond: 2500000, // 2.5 Mbps
   },
-} as const;
+};
+
+/**
+ * Update chunk duration from server config
+ * Should be called at app initialization
+ */
+export function updateChunkDuration(recommendedDuration: number): void {
+  RECORDING_CONFIG.CHUNK_DURATION = recommendedDuration * 1000; // Convert seconds to milliseconds
+  console.log(`Updated chunk duration to ${recommendedDuration}s (${RECORDING_CONFIG.CHUNK_DURATION}ms)`);
+}
 
 // ========== Default User Configuration ==========
 

@@ -1,17 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ConfigPanel } from './components/ConfigPanel';
 import { StatusIndicator } from './components/StatusIndicator';
 import { VideoRecorder } from './components/VideoRecorder';
 import { AnalysisDisplay } from './components/AnalysisDisplay';
 import { useMediaRecorder } from './hooks/useMediaRecorder';
 import { useWebSocket } from './hooks/useWebSocket';
-import { DEFAULT_CONFIG, UI_TEXT } from './config/constants';
+import { DEFAULT_CONFIG, UI_TEXT, updateChunkDuration } from './config/constants';
+import { getServerConfig } from './services/apiClient';
 import type { RecordingConfig } from './types';
 import { RecordingState } from './types';
 
 function App() {
   // Configuration state
   const [config, setConfig] = useState<RecordingConfig>(DEFAULT_CONFIG);
+  const [chunkDuration, setChunkDuration] = useState<number>(35); // seconds
+
+  // Fetch server config on mount
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const serverConfig = await getServerConfig();
+        updateChunkDuration(serverConfig.recommendedChunkDuration);
+        setChunkDuration(serverConfig.recommendedChunkDuration);
+        console.log(`Initialized with server config: window=${serverConfig.windowSize}s, step=${serverConfig.windowStep}s, chunk=${serverConfig.recommendedChunkDuration}s`);
+      } catch (error) {
+        console.error('Failed to fetch server config, using defaults:', error);
+      }
+    };
+
+    fetchConfig();
+  }, []);
 
   // MediaRecorder hook
   const {
@@ -91,7 +109,7 @@ function App() {
         {/* Footer Info */}
         <div className="mt-8 text-center text-sm text-gray-600">
           <p>
-            录制的视频每 30 秒自动分段上传并进行 AI 分析。
+            录制的视频每 {chunkDuration} 秒自动分段上传并进行 AI 分析。
             {config.keepVideo
               ? '视频将保留在服务器。'
               : '分析完成后视频将自动删除。'}

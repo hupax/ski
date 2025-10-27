@@ -98,6 +98,12 @@ export interface AnalysisRecordResponse {
   createdAt: string;
 }
 
+export interface ServerConfigResponse {
+  windowSize: number;
+  windowStep: number;
+  recommendedChunkDuration: number;
+}
+
 // ========== WebSocket Message Types ==========
 
 export interface WebSocketMessage {

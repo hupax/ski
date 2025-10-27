@@ -15,6 +15,14 @@ service VideoAnalysisService {
   // Step 2: Analyze video (Call AI API)
   // Streams back AI analysis results
   rpc AnalyzeVideo(AnalysisRequest) returns (stream AnalysisResponse);
+
+  // Step 3: Extract video tail (for cross-chunk windows)
+  // Extracts last N seconds from a video
+  rpc ExtractTail(ExtractTailRequest) returns (ExtractTailResponse);
+
+  // Step 4: Concatenate videos (for cross-chunk windows)
+  // Joins multiple videos into one
+  rpc ConcatVideos(ConcatVideosRequest) returns (ConcatVideosResponse);
 }
 
 // ========== Process Video Messages ==========
@@ -51,4 +59,29 @@ message AnalysisResponse {
   string content = 3;              // Streaming token content
   bool is_final = 4;               // Whether this is the last message
   string error = 5;                // Error message if any
+}
+
+// ========== Extract Tail Messages ==========
+
+message ExtractTailRequest {
+  string video_path = 1;           // Input video file path
+  string output_path = 2;          // Output tail file path
+  int32 duration = 3;              // Duration to extract (last N seconds)
+}
+
+message ExtractTailResponse {
+  string output_path = 1;          // Path to extracted tail file
+  string error = 2;                // Error message if any
+}
+
+// ========== Concatenate Videos Messages ==========
+
+message ConcatVideosRequest {
+  repeated string video_paths = 1; // List of video paths to concatenate (in order)
+  string output_path = 2;          // Output concatenated file path
+}
+
+message ConcatVideosResponse {
+  string output_path = 1;          // Path to concatenated video
+  string error = 2;                // Error message if any
 }

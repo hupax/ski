@@ -4,6 +4,7 @@ import type {
   VideoUploadResponse,
   SessionStatusResponse,
   AnalysisRecordResponse,
+  ServerConfigResponse,
 } from '../types';
 
 /**
@@ -105,5 +106,30 @@ export async function healthCheck(): Promise<boolean> {
   } catch (error) {
     console.error('Health check failed:', error);
     return false;
+  }
+}
+
+/**
+ * Get server configuration (window parameters)
+ */
+export async function getServerConfig(): Promise<ServerConfigResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/config`);
+
+    if (!response.ok) {
+      throw new Error(`Failed to get server config: ${response.status}`);
+    }
+
+    const data: ServerConfigResponse = await response.json();
+    console.log('Server config retrieved:', data);
+    return data;
+  } catch (error) {
+    console.error('Error getting server config:', error);
+    // Return default fallback values
+    return {
+      windowSize: 15,
+      windowStep: 10,
+      recommendedChunkDuration: 35,
+    };
   }
 }

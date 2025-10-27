@@ -225,6 +225,94 @@ class VideoAnalysisServicer(video_analysis_pb2_grpc.VideoAnalysisServiceServicer
                 error=f"Internal error: {e}"
             )
 
+    def ExtractTail(self, request, context):
+        """
+        Extract the last N seconds from a video
+
+        Args:
+            request: ExtractTailRequest
+            context: gRPC context
+
+        Returns:
+            ExtractTailResponse with output file path
+        """
+        try:
+            video_path = request.video_path
+            output_path = request.output_path
+            duration = request.duration
+
+            logger.info(f"ExtractTail called: video={video_path}, duration={duration}s")
+
+            # Extract tail using VideoProcessor
+            result_path = self.video_processor.extract_tail(
+                video_path=video_path,
+                output_path=output_path,
+                duration=duration
+            )
+
+            logger.info(f"ExtractTail completed: output={result_path}")
+
+            return video_analysis_pb2.ExtractTailResponse(
+                output_path=result_path,
+                error=""
+            )
+
+        except VideoProcessingError as e:
+            logger.error(f"ExtractTail failed: {e}")
+            return video_analysis_pb2.ExtractTailResponse(
+                output_path="",
+                error=str(e)
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error in ExtractTail: {e}")
+            return video_analysis_pb2.ExtractTailResponse(
+                output_path="",
+                error=f"Internal error: {e}"
+            )
+
+    def ConcatVideos(self, request, context):
+        """
+        Concatenate multiple videos into one
+
+        Args:
+            request: ConcatVideosRequest
+            context: gRPC context
+
+        Returns:
+            ConcatVideosResponse with output file path
+        """
+        try:
+            video_paths = list(request.video_paths)
+            output_path = request.output_path
+
+            logger.info(f"ConcatVideos called: {len(video_paths)} videos")
+
+            # Concatenate using VideoProcessor
+            result_path = self.video_processor.concat_videos(
+                video_paths=video_paths,
+                output_path=output_path
+            )
+
+            logger.info(f"ConcatVideos completed: output={result_path}")
+
+            return video_analysis_pb2.ConcatVideosResponse(
+                output_path=result_path,
+                error=""
+            )
+
+        except VideoProcessingError as e:
+            logger.error(f"ConcatVideos failed: {e}")
+            return video_analysis_pb2.ConcatVideosResponse(
+                output_path="",
+                error=str(e)
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error in ConcatVideos: {e}")
+            return video_analysis_pb2.ConcatVideosResponse(
+                output_path="",
+                error=f"Internal error: {e}"
+            )
+
 
 def serve():
     """Start gRPC server"""

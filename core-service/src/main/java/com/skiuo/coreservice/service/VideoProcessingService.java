@@ -120,11 +120,52 @@ public class VideoProcessingService {
         // Get storage service based on session's storage type
         StorageService storageService = storageServiceFactory.getStorageService(session.getStorageType());
 
+        // Calculate base time offset BEFORE any tail processing
+        int baseOffset = calculateAccumulatedDuration(session, chunk);
+
+        // Step 0: Check if we need to concatenate with previous chunk's tail
+        String videoToProcess = localPath;
+        boolean hasTailConcat = false;
+
+        if (session.getLastChunkTailPath() != null && chunk.getChunkIndex() > 0) {
+            log.info("Found previous chunk tail, concatenating: path={}, duration={}s",
+                    session.getLastChunkTailPath(), session.getLastChunkTailDuration());
+
+            try {
+                // Download tail from storage to local
+                String tailLocalPath = videoConfig.getTempPath() + "/" + session.getId() +
+                        "/tail_" + (chunk.getChunkIndex() - 1) + ".webm";
+                downloadFromStorage(session.getLastChunkTailPath(), tailLocalPath, storageService);
+
+                // Concatenate: tail + current_chunk
+                String concatPath = videoConfig.getTempPath() + "/" + session.getId() +
+                        "/concat_" + chunk.getChunkIndex() + ".webm";
+                videoToProcess = grpcClientService.concatVideos(
+                        List.of(tailLocalPath, localPath),
+                        concatPath
+                );
+
+                // Adjust baseOffset (subtract tail duration since it overlaps with previous chunk)
+                baseOffset -= session.getLastChunkTailDuration();
+                hasTailConcat = true;
+
+                log.info("Concatenated tail + chunk: output={}, adjusted baseOffset={}s",
+                        videoToProcess, baseOffset);
+
+                // Cleanup local tail file
+                cleanupService.deleteLocalFile(tailLocalPath);
+            } catch (Exception e) {
+                log.error("Failed to concatenate with tail, proceeding without it: {}", e.getMessage());
+                videoToProcess = localPath; // Fallback to original
+                baseOffset = calculateAccumulatedDuration(session, chunk); // Reset offset
+            }
+        }
+
         // Step 1: Call ProcessVideo to slice video
         List<String> windowPaths = grpcClientService.processVideo(
                 session.getId().toString(),
                 chunk.getId(),
-                localPath,
+                videoToProcess,
                 "sliding_window",
                 videoConfig.getWindowSize(),
                 videoConfig.getWindowStep()
@@ -146,11 +187,10 @@ public class VideoProcessingService {
             }
         }
 
-        // Step 3: Calculate base time offset from accumulated chunk durations
-        int baseOffset = calculateAccumulatedDuration(session, chunk);
-        log.info("Base time offset for chunk {}: {} seconds", chunk.getChunkIndex(), baseOffset);
+        // Note: baseOffset was already calculated and adjusted for tail concatenation above (line 124-149)
+        log.info("Using base time offset for chunk {}: {} seconds", chunk.getChunkIndex(), baseOffset);
 
-        // Step 4: Upload each window to MinIO and analyze
+        // Step 3: Upload each window to storage and analyze
         for (int i = 0; i < windowPaths.size(); i++) {
             String windowPath = windowPaths.get(i);
             int globalWindowIndex = globalWindowStartIndex + i;
@@ -203,6 +243,51 @@ public class VideoProcessingService {
 
         log.info("Sliding window analysis completed: sessionId={}, windows={}, globalIndexRange={}-{}",
                 session.getId(), windowPaths.size(), globalWindowStartIndex, globalWindowStartIndex + windowPaths.size() - 1);
+
+        // Step 4: Extract and save tail for next chunk (for cross-chunk windows)
+        try {
+            // Calculate tail duration: overlap between chunks
+            int tailDuration = videoConfig.getWindowSize() - videoConfig.getWindowStep();
+
+            // Extract tail from ORIGINAL chunk (not the concatenated one)
+            String tailLocalPath = videoConfig.getTempPath() + "/" + session.getId() +
+                    "/tail_" + chunk.getChunkIndex() + ".webm";
+            grpcClientService.extractTail(localPath, tailLocalPath, tailDuration);
+
+            // Upload tail to storage
+            String tailStoragePath = "sessions/" + session.getId() + "/tail_" +
+                    chunk.getChunkIndex() + "_" + System.currentTimeMillis() + ".webm";
+            storageService.uploadFile(tailLocalPath, tailStoragePath);
+
+            // Delete previous tail from storage if exists
+            if (session.getLastChunkTailPath() != null) {
+                try {
+                    storageService.deleteObject(session.getLastChunkTailPath());
+                    log.info("Deleted previous tail: {}", session.getLastChunkTailPath());
+                } catch (Exception e) {
+                    log.warn("Failed to delete previous tail: {}", e.getMessage());
+                }
+            }
+
+            // Update session with new tail info
+            session.setLastChunkTailPath(tailStoragePath);
+            session.setLastChunkTailDuration(tailDuration);
+            videoUploadService.updateSessionStatus(session.getId(), session.getStatus()); // Trigger save
+
+            log.info("Saved chunk tail: duration={}s, path={}", tailDuration, tailStoragePath);
+
+            // Cleanup local tail file
+            cleanupService.deleteLocalFile(tailLocalPath);
+
+        } catch (Exception e) {
+            log.error("Failed to extract/save tail, continuing without it: {}", e.getMessage());
+            // Not critical, continue processing
+        }
+
+        // Cleanup concatenated file if created
+        if (hasTailConcat && !videoToProcess.equals(localPath)) {
+            cleanupService.deleteLocalFile(videoToProcess);
+        }
     }
 
     /**
@@ -249,5 +334,48 @@ public class VideoProcessingService {
             return result;
         }
         return "..." + result.substring(result.length() - 500);
+    }
+
+    /**
+     * Download file from storage to local path
+     * This is a helper method since StorageService doesn't have a direct download method
+     *
+     * @param storagePath   Path in storage
+     * @param localPath     Local file path to save
+     * @param storageService Storage service instance
+     */
+    private void downloadFromStorage(String storagePath, String localPath, StorageService storageService) {
+        try {
+            // Generate a temporary URL and download using it
+            // For MinIO/OSS/COS, we can use presigned URLs
+            String url = storageService.generatePublicUrl(storagePath);
+
+            // Use Java HTTP client to download
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(url))
+                    .GET()
+                    .build();
+
+            java.net.http.HttpResponse<byte[]> response = client.send(request,
+                    java.net.http.HttpResponse.BodyHandlers.ofByteArray());
+
+            if (response.statusCode() != 200) {
+                throw new VideoProcessingException("Failed to download from storage: HTTP " + response.statusCode());
+            }
+
+            // Ensure parent directory exists
+            java.nio.file.Path path = java.nio.file.Paths.get(localPath);
+            java.nio.file.Files.createDirectories(path.getParent());
+
+            // Write to local file
+            java.nio.file.Files.write(path, response.body());
+
+            log.info("Downloaded from storage: {} -> {}", storagePath, localPath);
+
+        } catch (Exception e) {
+            log.error("Failed to download from storage: {}", e.getMessage());
+            throw new VideoProcessingException("Failed to download from storage", e);
+        }
     }
 }

@@ -40,6 +40,13 @@ public class Session {
     @Column(name = "storage_type", length = 20)
     private String storageType;
 
+    // For cross-chunk window support
+    @Column(name = "last_chunk_tail_path", length = 500)
+    private String lastChunkTailPath;  // Path to the tail of the last processed chunk
+
+    @Column(name = "last_chunk_tail_duration")
+    private Integer lastChunkTailDuration;  // Duration of the tail in seconds
+
     @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
 

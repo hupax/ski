@@ -670,9 +670,588 @@ def smart_slice(video_path):
 
 ---
 
-## 5. 监控与可观测性
+## 5. 跨chunk窗口优化（Cross-Chunk Windows）
 
-### 5.1 关键指标
+### 5.1 问题背景
+
+#### 窗口断层问题
+
+在滑动窗口模式下，视频被分成多个chunk（如35秒一个），每个chunk独立切片和分析。这导致在chunk边界处出现**窗口断层**：
+
+```
+chunk 0 (0-35s) → windows: [0-15, 10-25, 20-35]
+chunk 1 (35-70s) → windows: [35-50, 45-60, 55-70]
+                              ↑
+                在35秒边界处缺少跨chunk的窗口
+                无法分析 [25-40, 30-45] 等跨界窗口
+```
+
+**影响**：
+- ❌ chunk边界处的动作可能被截断
+- ❌ 重叠策略在边界处失效
+- ❌ 可能丢失关键帧（恰好发生在边界）
+
+#### 方案对比
+
+针对这个问题，有4种不同的解决方案：
+
+| 方案 | 描述 | 复杂度 | 效果 | 推荐度 |
+|------|------|--------|------|--------|
+| **方案1** | 不解决，依赖上下文传递 | 低 | 语义连续但视觉断层 | ⭐⭐ |
+| **方案2** | 后端保存chunk尾部并拼接 | 中 | 完全无缝 | ⭐⭐⭐⭐⭐ |
+| **方案3** | 全局窗口计算 | 高 | 完全无缝 | ⭐⭐⭐ |
+| **方案4** | 前端overlap录制 | 中高 | 部分无缝 | ⭐⭐ |
+
+**实施方案**：选择**方案2**（后端tail保存拼接），原因：
+- ✅ 无需改动前端，零侵入
+- ✅ 后端实现相对简单
+- ✅ 完全解决断层问题
+- ✅ 对用户透明
+
+---
+
+### 5.2 方案2实现：Tail Preservation
+
+#### 核心思路
+
+```
+chunk 0 处理完成后：
+  1. 提取最后N秒作为"tail"（N = windowSize - windowStep）
+  2. 上传tail到存储（MinIO/OSS/COS）
+  3. 保存tail路径到Session实体
+
+chunk 1 处理时：
+  1. 下载上一个chunk的tail
+  2. 拼接：[tail + chunk1] → 新视频
+  3. 对拼接后的视频进行窗口切片
+  4. 时间偏移调整：baseOffset -= tailDuration
+```
+
+**示例**（windowSize=15s, windowStep=10s）：
+
+```
+chunk 0 (0-35s):
+  处理 → windows: [0-15, 10-25, 20-35]
+  提取 tail: [30-35s] (5秒 = 15-10)
+  保存: sessions/123/tail_0.webm
+
+chunk 1 (35-70s):
+  下载 tail_0.webm
+  拼接: [tail_0(30-35) + chunk_1(35-70)] → 新视频(30-70s, 40秒)
+  切片: [30-45, 40-55, 50-65, 60-70]
+         ↑           ↑
+      跨chunk窗口   完美覆盖35秒边界
+  时间调整: baseOffset = 35 - 5 = 30s
+```
+
+**效果**：
+- ✅ 在35秒边界处生成了 [30-45] 窗口，覆盖了断层区域
+- ✅ 时间轴连续，所有窗口的时间戳准确
+- ✅ 用户无感知，前端零改动
+
+---
+
+### 5.3 技术实现
+
+#### 架构改动
+
+**1. gRPC接口扩展**
+
+新增两个RPC方法：
+
+```protobuf
+// proto/video_analysis.proto
+service VideoAnalysisService {
+  // ... 现有方法
+
+  // 提取视频尾部（最后N秒）
+  rpc ExtractTail(ExtractTailRequest) returns (ExtractTailResponse);
+
+  // 拼接多个视频
+  rpc ConcatVideos(ConcatVideosRequest) returns (ConcatVideosResponse);
+}
+
+message ExtractTailRequest {
+  string video_path = 1;
+  string output_path = 2;
+  int32 duration = 3;
+}
+
+message ConcatVideosRequest {
+  repeated string video_paths = 1;
+  string output_path = 2;
+}
+```
+
+**2. Python实现（ai-service）**
+
+```python
+# ai-service/grpc_server.py
+class VideoAnalysisServicer:
+    def ExtractTail(self, request, context):
+        """提取视频最后N秒"""
+        result_path = self.video_processor.extract_tail(
+            video_path=request.video_path,
+            output_path=request.output_path,
+            duration=request.duration
+        )
+        return ExtractTailResponse(output_path=result_path, error="")
+
+    def ConcatVideos(self, request, context):
+        """拼接多个视频"""
+        result_path = self.video_processor.concat_videos(
+            video_paths=list(request.video_paths),
+            output_path=request.output_path
+        )
+        return ConcatVideosResponse(output_path=result_path, error="")
+```
+
+```python
+# ai-service/video_processor.py
+def extract_tail(self, video_path: str, output_path: str, duration: int) -> str:
+    """使用FFmpeg提取最后N秒"""
+    video_duration = self._get_video_duration(video_path)
+    start_time = max(0, video_duration - duration)
+
+    cmd = [
+        'ffmpeg', '-y',
+        '-ss', str(start_time),
+        '-i', video_path,
+        '-t', str(duration),
+        '-c', 'copy',
+        output_path
+    ]
+    subprocess.run(cmd, check=True)
+    return output_path
+
+def concat_videos(self, video_paths: List[str], output_path: str) -> str:
+    """使用FFmpeg concat demuxer拼接视频"""
+    concat_list_path = output_path + '.txt'
+
+    # 创建concat列表文件
+    with open(concat_list_path, 'w') as f:
+        for path in video_paths:
+            f.write(f"file '{os.path.abspath(path)}'\n")
+
+    cmd = [
+        'ffmpeg', '-y',
+        '-f', 'concat',
+        '-safe', '0',
+        '-i', concat_list_path,
+        '-c', 'copy',
+        output_path
+    ]
+    subprocess.run(cmd, check=True)
+    os.remove(concat_list_path)
+    return output_path
+```
+
+**3. Java实现（core-service）**
+
+**Session实体扩展**：
+
+```java
+// core-service/.../entity/Session.java
+@Entity
+public class Session {
+    // ... 现有字段
+
+    // 用于跨chunk窗口支持
+    @Column(name = "last_chunk_tail_path", length = 500)
+    private String lastChunkTailPath;  // 上一个chunk的tail存储路径
+
+    @Column(name = "last_chunk_tail_duration")
+    private Integer lastChunkTailDuration;  // tail时长（秒）
+}
+```
+
+**GrpcClientService扩展**：
+
+```java
+// core-service/.../service/GrpcClientService.java
+public class GrpcClientService {
+    // ... 现有方法
+
+    public String extractTail(String videoPath, String outputPath, int duration) {
+        ExtractTailRequest request = ExtractTailRequest.newBuilder()
+                .setVideoPath(videoPath)
+                .setOutputPath(outputPath)
+                .setDuration(duration)
+                .build();
+
+        ExtractTailResponse response = blockingStub.extractTail(request);
+
+        if (!response.getError().isEmpty()) {
+            throw new GrpcException("ExtractTail failed: " + response.getError());
+        }
+
+        return response.getOutputPath();
+    }
+
+    public String concatVideos(List<String> videoPaths, String outputPath) {
+        ConcatVideosRequest request = ConcatVideosRequest.newBuilder()
+                .addAllVideoPaths(videoPaths)
+                .setOutputPath(outputPath)
+                .build();
+
+        ConcatVideosResponse response = blockingStub.concatVideos(request);
+
+        if (!response.getError().isEmpty()) {
+            throw new GrpcException("ConcatVideos failed: " + response.getError());
+        }
+
+        return response.getOutputPath();
+    }
+}
+```
+
+**VideoProcessingService改造**：
+
+```java
+// core-service/.../service/VideoProcessingService.java
+private void processSlidingWindowMode(Session session, VideoChunk chunk, String localPath) {
+    StorageService storageService = storageServiceFactory.getStorageService(session.getStorageType());
+
+    // 计算基准时间偏移
+    int baseOffset = calculateAccumulatedDuration(session, chunk);
+
+    // Step 0: 检查并拼接前一个chunk的tail
+    String videoToProcess = localPath;
+    boolean hasTailConcat = false;
+
+    if (session.getLastChunkTailPath() != null && chunk.getChunkIndex() > 0) {
+        try {
+            // 下载tail到本地
+            String tailLocalPath = tempPath + "/tail_" + (chunk.getChunkIndex() - 1) + ".webm";
+            downloadFromStorage(session.getLastChunkTailPath(), tailLocalPath, storageService);
+
+            // 拼接：[tail + current_chunk]
+            String concatPath = tempPath + "/concat_" + chunk.getChunkIndex() + ".webm";
+            videoToProcess = grpcClientService.concatVideos(
+                    List.of(tailLocalPath, localPath),
+                    concatPath
+            );
+
+            // 调整时间偏移（减去tail时长，因为tail与上一个chunk重叠）
+            baseOffset -= session.getLastChunkTailDuration();
+            hasTailConcat = true;
+
+            log.info("Concatenated tail + chunk: adjusted baseOffset={}s", baseOffset);
+
+            cleanupService.deleteLocalFile(tailLocalPath);
+        } catch (Exception e) {
+            log.error("Failed to concatenate tail: {}", e.getMessage());
+            videoToProcess = localPath;  // 降级：使用原始chunk
+            baseOffset = calculateAccumulatedDuration(session, chunk);
+        }
+    }
+
+    // Step 1: 切片视频
+    List<String> windowPaths = grpcClientService.processVideo(..., videoToProcess, ...);
+
+    // Step 2-3: 分析窗口（正常流程）
+    for (int i = 0; i < windowPaths.size(); i++) {
+        int startOffset = baseOffset + (i * windowStep);
+        int endOffset = startOffset + windowSize;
+        // ... 分析逻辑
+    }
+
+    // Step 4: 提取并保存新的tail
+    try {
+        int tailDuration = windowSize - windowStep;
+
+        // 从**原始chunk**提取tail（不是拼接后的）
+        String tailLocalPath = tempPath + "/tail_" + chunk.getChunkIndex() + ".webm";
+        grpcClientService.extractTail(localPath, tailLocalPath, tailDuration);
+
+        // 上传tail到存储
+        String tailStoragePath = "sessions/" + session.getId() +
+                "/tail_" + chunk.getChunkIndex() + "_" + System.currentTimeMillis() + ".webm";
+        storageService.uploadFile(tailLocalPath, tailStoragePath);
+
+        // 删除旧tail
+        if (session.getLastChunkTailPath() != null) {
+            storageService.deleteObject(session.getLastChunkTailPath());
+        }
+
+        // 更新Session
+        session.setLastChunkTailPath(tailStoragePath);
+        session.setLastChunkTailDuration(tailDuration);
+
+        log.info("Saved chunk tail: duration={}s, path={}", tailDuration, tailStoragePath);
+
+        cleanupService.deleteLocalFile(tailLocalPath);
+    } catch (Exception e) {
+        log.error("Failed to save tail: {}", e.getMessage());
+        // 非关键错误，继续处理
+    }
+
+    // 清理拼接文件
+    if (hasTailConcat && !videoToProcess.equals(localPath)) {
+        cleanupService.deleteLocalFile(videoToProcess);
+    }
+}
+
+private void downloadFromStorage(String storagePath, String localPath, StorageService storage) {
+    String url = storage.generatePublicUrl(storagePath);
+    HttpClient client = HttpClient.newHttpClient();
+    HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .GET()
+            .build();
+
+    HttpResponse<byte[]> response = client.send(request,
+            HttpResponse.BodyHandlers.ofByteArray());
+
+    if (response.statusCode() != 200) {
+        throw new VideoProcessingException("Download failed: HTTP " + response.statusCode());
+    }
+
+    Files.createDirectories(Paths.get(localPath).getParent());
+    Files.write(Paths.get(localPath), response.body());
+}
+```
+
+---
+
+### 5.4 关键设计决策
+
+#### 1. Tail时长计算
+
+```
+tailDuration = windowSize - windowStep
+```
+
+**理由**：这是窗口之间的重叠量。例如：
+- windowSize=15秒, windowStep=10秒
+- 重叠量 = 15-10 = 5秒
+- 因此tail需要保存最后5秒
+
+**示例**：
+```
+chunk 0 的最后一个窗口: [20-35s]
+tail: [30-35s] (最后5秒)
+chunk 1 的第一个窗口: [30-45s]
+                      ↑
+                  与tail的起点对齐
+```
+
+#### 2. 时间偏移调整
+
+```java
+baseOffset -= session.getLastChunkTailDuration();
+```
+
+**理由**：拼接后的视频包含了上一个chunk的最后N秒，这部分时间已经在前一个chunk中计算过，需要减去避免重复计算。
+
+**示例**：
+```
+chunk 0: 0-35s, baseOffset=0
+chunk 1: 35-70s, baseOffset=35
+
+拼接后: [tail(30-35) + chunk1(35-70)] = 30-70s
+调整: baseOffset = 35 - 5 = 30s  ✓ 正确
+
+第一个窗口: [30-45s]
+  startOffset = 30 + 0×10 = 30s  ✓
+  endOffset = 30 + 15 = 45s      ✓
+```
+
+#### 3. 从原始chunk提取tail
+
+```java
+// 从localPath提取tail，而不是从videoToProcess
+grpcClientService.extractTail(localPath, tailLocalPath, tailDuration);
+```
+
+**理由**：
+- `videoToProcess` 可能是拼接后的视频，包含了上一个chunk的tail
+- 我们需要的是**当前chunk**的尾部
+- 因此必须从原始的 `localPath` 提取
+
+#### 4. 错误处理策略
+
+所有tail相关操作都使用**graceful degradation**：
+
+```java
+try {
+    // tail处理
+} catch (Exception e) {
+    log.error("Tail processing failed: {}", e.getMessage());
+    // 继续处理，不影响主流程
+}
+```
+
+**理由**：
+- Tail优化是一个**增强功能**，不是核心功能
+- 如果tail处理失败，系统应该降级到原始模式（无跨chunk窗口）
+- 保证系统稳定性优先于功能完整性
+
+---
+
+### 5.5 存储管理
+
+#### Tail生命周期
+
+```
+chunk 0 完成 → 上传 tail_0 到存储
+chunk 1 完成 → 上传 tail_1，删除 tail_0
+chunk 2 完成 → 上传 tail_2，删除 tail_1
+...
+session结束 → 删除最后一个tail
+```
+
+**存储路径**：
+```
+sessions/{sessionId}/tail_{chunkIndex}_{timestamp}.webm
+```
+
+**清理策略**：
+1. 每次保存新tail时，删除上一个tail
+2. Session结束时，清理最后一个tail
+3. 定期清理孤儿tail（超过24小时的）
+
+#### 存储成本估算
+
+```
+假设：
+- windowSize=15s, windowStep=10s → tail=5秒
+- 视频码率: 1Mbps
+- tail大小: 5秒 × 1Mbps = 625KB
+
+每个session同时只保存1个tail，存储开销极小。
+100个并发session: 100 × 625KB = 62.5MB
+```
+
+**结论**：存储成本可以忽略不计。
+
+---
+
+### 5.6 性能影响
+
+#### 额外开销分析
+
+**Per chunk额外操作**：
+1. 下载tail (625KB): ~200ms
+2. 拼接视频 (FFmpeg): ~500ms
+3. 提取tail (FFmpeg): ~300ms
+4. 上传tail (625KB): ~200ms
+
+**总计**: ~1.2秒
+
+**对比**：
+- AI分析时间: 30-60秒/窗口
+- 额外开销占比: 1.2 / 30 = **4%**
+
+**结论**：性能影响很小，完全可接受。
+
+#### FFmpeg优化
+
+使用 `-c copy` 避免重新编码：
+
+```bash
+# 拼接（stream copy模式）
+ffmpeg -f concat -safe 0 -i list.txt -c copy output.webm
+
+# 提取（stream copy模式）
+ffmpeg -ss 30 -i input.webm -t 5 -c copy tail.webm
+```
+
+**效果**：
+- ✅ 无需重新编码，速度极快
+- ✅ 无质量损失
+- ✅ CPU使用率低
+
+---
+
+### 5.7 测试验证
+
+#### 测试场景
+
+**场景1：基本跨chunk窗口**
+
+```
+配置：windowSize=15s, windowStep=10s, chunk=35s
+
+chunk 0 (0-35s):
+  windows: [0-15, 10-25, 20-35]
+  tail: [30-35s]
+
+chunk 1 (35-70s):
+  concat: [30-35 + 35-70] = [30-70s]
+  windows: [30-45, 40-55, 50-65, 60-70]
+           ↑
+     跨chunk窗口
+
+验证点：
+✓ [30-45s] 窗口成功生成
+✓ 时间戳准确（startOffset=30s）
+✓ 覆盖了35秒边界
+```
+
+**场景2：多chunk连续**
+
+```
+chunk 0, 1, 2, 3 连续处理
+验证点：
+✓ 每个chunk边界都有跨chunk窗口
+✓ 时间轴连续无断层
+✓ 旧tail被正确清理
+```
+
+**场景3：Tail处理失败降级**
+
+```
+模拟tail下载失败
+
+预期行为：
+✓ 系统继续处理，不崩溃
+✓ 使用原始chunk（无拼接）
+✓ 日志记录错误但不影响主流程
+```
+
+---
+
+### 5.8 未来优化方向
+
+#### 方案3：全局窗口计算（长期）
+
+如果需要更优的性能，可以考虑方案3：
+
+```
+前端持续上传chunks → 后端缓存
+定期触发全局切片：
+  concat(chunk_0 + chunk_1 + chunk_2 + ...) → 完整视频
+  全局切片: [0-15, 10-25, 20-35, 30-45, ...]
+```
+
+**优点**：
+- 完全无断层
+- 可以实现任意窗口策略
+
+**缺点**：
+- 需要缓存所有chunks（内存/存储开销大）
+- 延迟高（需要等待多个chunks）
+- 实时性差
+
+**适用场景**：
+- 离线批处理模式
+- 对实时性要求不高的场景
+
+---
+
+### 5.9 相关文档
+
+- `doc/滑动窗口修复总结.md` - 窗口参数优化历史
+- `proto/video_analysis.proto` - gRPC接口定义
+- `ai-service/video_processor.py` - FFmpeg视频处理
+- `core-service/.../VideoProcessingService.java` - 主处理流程
+
+---
+
+## 6. 监控与可观测性
+
+### 6.1 关键指标
 
 ```yaml
 指标体系：
@@ -695,7 +1274,7 @@ def smart_slice(video_path):
     - 队列积压数
 ```
 
-### 5.2 监控实现
+### 6.2 监控实现
 
 #### Prometheus + Grafana
 
@@ -744,9 +1323,9 @@ public void uploadVideo(MultipartFile file) {
 
 ---
 
-## 6. 成本优化
+## 7. 成本优化
 
-### 6.1 AI API成本
+### 7.1 AI API成本
 
 #### 当前成本模型
 ```
@@ -803,7 +1382,7 @@ public AnalysisResult analyze(String videoHash, String videoUrl) {
 
 ---
 
-### 6.2 存储成本
+### 7.2 存储成本
 
 #### MinIO存储成本
 
@@ -851,7 +1430,7 @@ gzip video.webm → video.webm.gz
 
 ---
 
-## 7. 实施优先级
+## 8. 实施优先级
 
 ### 优先级矩阵
 
@@ -891,7 +1470,7 @@ gzip video.webm → video.webm.gz
 
 ---
 
-## 8. 决策指南
+## 9. 决策指南
 
 ### 何时优化IO？
 

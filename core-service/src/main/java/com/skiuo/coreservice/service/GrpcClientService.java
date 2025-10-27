@@ -163,4 +163,68 @@ public class GrpcClientService {
             throw new GrpcException("AnalyzeVideo sync failed", e);
         }
     }
+
+    /**
+     * Extract tail (last N seconds) from a video
+     *
+     * @param videoPath  Input video file path
+     * @param outputPath Output file path for tail
+     * @param duration   Duration to extract in seconds
+     * @return Path to extracted tail file
+     */
+    public String extractTail(String videoPath, String outputPath, int duration) {
+        try {
+            ExtractTailRequest request = ExtractTailRequest.newBuilder()
+                    .setVideoPath(videoPath)
+                    .setOutputPath(outputPath)
+                    .setDuration(duration)
+                    .build();
+
+            log.info("Calling ExtractTail gRPC: video={}, duration={}s", videoPath, duration);
+
+            ExtractTailResponse response = blockingStub.extractTail(request);
+
+            if (response.getError() != null && !response.getError().isEmpty()) {
+                throw new GrpcException("ExtractTail failed: " + response.getError());
+            }
+
+            log.info("ExtractTail completed: output={}", response.getOutputPath());
+            return response.getOutputPath();
+
+        } catch (Exception e) {
+            log.error("Failed to call ExtractTail gRPC: {}", e.getMessage());
+            throw new GrpcException("Failed to call ExtractTail gRPC", e);
+        }
+    }
+
+    /**
+     * Concatenate multiple videos into one
+     *
+     * @param videoPaths List of video file paths to concatenate (in order)
+     * @param outputPath Output file path for concatenated video
+     * @return Path to concatenated video
+     */
+    public String concatVideos(List<String> videoPaths, String outputPath) {
+        try {
+            ConcatVideosRequest request = ConcatVideosRequest.newBuilder()
+                    .addAllVideoPaths(videoPaths)
+                    .setOutputPath(outputPath)
+                    .build();
+
+            log.info("Calling ConcatVideos gRPC: {} videos", videoPaths.size());
+
+            ConcatVideosResponse response = blockingStub.concatVideos(request);
+
+            if (response.getError() != null && !response.getError().isEmpty()) {
+                throw new GrpcException("ConcatVideos failed: " + response.getError());
+            }
+
+            log.info("ConcatVideos completed: output={}", response.getOutputPath());
+            return response.getOutputPath();
+
+        } catch (Exception e) {
+            log.error("Failed to call ConcatVideos gRPC: {}", e.getMessage());
+            throw new GrpcException("Failed to call ConcatVideos gRPC", e);
+        }
+    }
 }

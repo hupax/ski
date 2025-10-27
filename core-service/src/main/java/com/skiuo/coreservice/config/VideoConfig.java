@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 @Data
 public class VideoConfig {
 
-    private String tempPath = "/tmp/skiuo";
-    private Integer windowSize = 15;
-    private Integer windowStep = 10;
+    private String tempPath = "/Users/hupax/ski/temp";
+    private Integer windowSize = 30;
+    private Integer windowStep = 20;
 }

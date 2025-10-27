@@ -17,6 +17,11 @@ export class VideoRecorderService {
   private chunkIntervalId: number | null = null;
   private currentOptions: MediaRecorderOptions | null = null;
 
+  // Track actual recording time (excluding paused time)
+  private recordingStartTime: number = 0;
+  private accumulatedRecordingTime: number = 0; // ms
+  private pauseStartTime: number = 0;
+
   /**
    * Request camera permission and get media stream
    */
@@ -86,15 +91,27 @@ export class VideoRecorderService {
     if (this.startTime === 0) {
       this.startTime = Date.now();
     }
-    this.lastChunkTime = Date.now();
+
+    // Reset recording time tracking for this chunk
+    this.recordingStartTime = Date.now();
+    this.accumulatedRecordingTime = 0;
+    this.pauseStartTime = 0;
 
     // Handle data available event (triggered when stop() is called)
     this.mediaRecorder.ondataavailable = (event) => {
       if (event.data && event.data.size > 0) {
+        // Calculate actual recording duration (excluding paused time)
         const now = Date.now();
-        const duration = Math.round((now - this.lastChunkTime) / 1000); // Duration in seconds
+        let actualRecordingTime = this.accumulatedRecordingTime;
 
-        console.log(`Complete chunk available: ${event.data.size} bytes, duration: ${duration}s`);
+        // Add time from last resume/start to now (if not currently paused)
+        if (this.pauseStartTime === 0) {
+          actualRecordingTime += (now - this.recordingStartTime);
+        }
+
+        const duration = Math.round(actualRecordingTime / 1000); // Duration in seconds
+
+        console.log(`Complete chunk available: ${event.data.size} bytes, actual duration: ${duration}s (excluding paused time)`);
         this.currentOptions!.onDataAvailable(event.data, duration);
       }
     };
@@ -148,8 +165,20 @@ export class VideoRecorderService {
    */
   pauseRecording(): void {
     if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+      // Accumulate recording time before pausing
+      const now = Date.now();
+      this.accumulatedRecordingTime += (now - this.recordingStartTime);
+      this.pauseStartTime = now;
+
+      // Clear chunk interval timer
+      if (this.chunkIntervalId) {
+        clearInterval(this.chunkIntervalId);
+        this.chunkIntervalId = null;
+        console.log('Chunk interval cleared due to pause');
+      }
+
       this.mediaRecorder.pause();
-      console.log('Recording paused');
+      console.log(`Recording paused (accumulated: ${Math.round(this.accumulatedRecordingTime / 1000)}s)`);
     }
   }
 
@@ -158,9 +187,31 @@ export class VideoRecorderService {
    */
   resumeRecording(): void {
     if (this.mediaRecorder && this.mediaRecorder.state === 'paused') {
+      const now = Date.now();
+      this.recordingStartTime = now;
+      this.pauseStartTime = 0;
+
       this.mediaRecorder.resume();
-      this.lastChunkTime = Date.now(); // Reset chunk timer
-      console.log('Recording resumed');
+
+      // Calculate remaining time until next chunk
+      const targetChunkDuration = RECORDING_CONFIG.CHUNK_DURATION;
+      const remainingTime = targetChunkDuration - this.accumulatedRecordingTime;
+
+      if (remainingTime > 0) {
+        // Restart timer with remaining time
+        this.chunkIntervalId = setTimeout(() => {
+          if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+            console.log('Chunk duration reached, stopping recorder...');
+            this.mediaRecorder.stop();
+          }
+        }, remainingTime);
+
+        console.log(`Recording resumed (remaining: ${Math.round(remainingTime / 1000)}s until next chunk)`);
+      } else {
+        // Accumulated time already exceeds chunk duration, stop immediately
+        console.log('Accumulated time exceeds chunk duration, stopping immediately');
+        this.mediaRecorder.stop();
+      }
     }
   }
 

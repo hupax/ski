@@ -198,6 +198,99 @@ class VideoProcessor:
             logger.error(f"FFmpeg failed: {e.stderr}")
             raise FFmpegError(f"FFmpeg slicing failed: {e.stderr}")
 
+    def extract_tail(
+            self,
+            video_path: str,
+            output_path: str,
+            duration: int
+    ) -> str:
+        """
+        Extract the last N seconds from a video
+
+        Args:
+            video_path: Input video file
+            output_path: Output file path
+            duration: Duration to extract in seconds
+
+        Returns:
+            Path to extracted tail file
+        """
+        try:
+            video_duration = self._get_video_duration(video_path)
+
+            # If video is shorter than desired tail, just copy the whole video
+            if video_duration <= duration:
+                import shutil
+                shutil.copy2(video_path, output_path)
+                logger.info(f"Video shorter than tail duration, copied entire file")
+                return output_path
+
+            # Extract last N seconds
+            start = video_duration - duration
+            self._slice_segment(video_path, output_path, start, duration)
+
+            logger.info(f"Extracted {duration}s tail from {video_path} to {output_path}")
+            return output_path
+
+        except Exception as e:
+            logger.error(f"Failed to extract tail: {e}")
+            raise VideoProcessingError(f"Tail extraction failed: {e}")
+
+    def concat_videos(
+            self,
+            video_paths: List[str],
+            output_path: str
+    ) -> str:
+        """
+        Concatenate multiple videos
+
+        Args:
+            video_paths: List of input video files
+            output_path: Output concatenated file
+
+        Returns:
+            Path to concatenated video
+        """
+        try:
+            # Create concat list file
+            concat_list_path = output_path + '.concat.txt'
+            with open(concat_list_path, 'w') as f:
+                for video_path in video_paths:
+                    # FFmpeg concat requires absolute paths
+                    abs_path = os.path.abspath(video_path)
+                    f.write(f"file '{abs_path}'\n")
+
+            # Concatenate using FFmpeg
+            cmd = [
+                'ffmpeg',
+                '-y',
+                '-f', 'concat',
+                '-safe', '0',
+                '-i', concat_list_path,
+                '-c', 'copy',  # Copy without re-encoding for speed
+                output_path
+            ]
+
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+
+            # Cleanup concat list
+            os.remove(concat_list_path)
+
+            logger.info(f"Concatenated {len(video_paths)} videos to {output_path}")
+            return output_path
+
+        except subprocess.CalledProcessError as e:
+            logger.error(f"FFmpeg concat failed: {e.stderr}")
+            raise FFmpegError(f"Video concatenation failed: {e.stderr}")
+        except Exception as e:
+            logger.error(f"Unexpected error in concat_videos: {e}")
+            raise VideoProcessingError(f"Video concatenation failed: {e}")
+
     def cleanup_session(self, session_id: str):
         """
         Cleanup temporary files for a session

@@ -21,7 +21,7 @@ public class DotenvConfig {
         try {
             // Load .env file from project root directory (parent of core-service)
             Dotenv dotenv = Dotenv.configure()
-                    .directory("../")  // Look for .env in parent directory (project root)
+                    .directory("/Users/hupax/ski")  // Look for .env in parent directory (project root)
                     .ignoreIfMissing() // Don't fail if .env doesn't exist
                     .load();
 
