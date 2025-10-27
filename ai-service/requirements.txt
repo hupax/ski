@@ -1,0 +1,14 @@
+# gRPC
+grpcio==1.68.1
+grpcio-tools==1.68.1
+grpcio-status==1.68.1
+
+# Environment
+python-dotenv==1.0.0
+
+# AI APIs
+dashscope  # For Qwen (DashScope native SDK)
+google-genai>=1.0.0  # For Gemini (new unified SDK)
+
+# Video Processing
+ffmpeg-python==0.2.0

@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.skiuo.grpc";
+option java_outer_classname = "VideoAnalysisProto";
+
+package videoanalysis;
+
+// Video Analysis Service
+service VideoAnalysisService {
+  // Step 1: Process video (FFmpeg slicing)
+  // Returns local file paths of sliced windows
+  rpc ProcessVideo(ProcessRequest) returns (ProcessResponse);
+
+  // Step 2: Analyze video (Call AI API)
+  // Streams back AI analysis results
+  rpc AnalyzeVideo(AnalysisRequest) returns (stream AnalysisResponse);
+}
+
+// ========== Process Video Messages ==========
+
+message ProcessRequest {
+  string session_id = 1;           // Session ID
+  int64 chunk_id = 2;              // Chunk ID in database
+  string video_path = 3;           // Local file path (same server)
+  string analysis_mode = 4;        // "full" or "sliding_window"
+  int32 window_size = 5;           // Sliding window size in seconds (default 15)
+  int32 window_step = 6;           // Sliding step size in seconds (default 10)
+}
+
+message ProcessResponse {
+  repeated string window_paths = 1; // List of sliced window file paths
+  string error = 2;                 // Error message if any
+}
+
+// ========== Analyze Video Messages ==========
+
+message AnalysisRequest {
+  string session_id = 1;           // Session ID
+  int32 window_index = 2;          // Window index for identification
+  string video_url = 3;            // MinIO presigned URL (core)
+  string ai_model = 4;             // "qwen" or "gemini"
+  string context = 5;              // Previous window result summary
+  int32 start_offset = 6;          // Start time offset in seconds
+  int32 end_offset = 7;            // End time offset in seconds
+}
+
+message AnalysisResponse {
+  string session_id = 1;           // Session ID
+  int32 window_index = 2;          // Window index
+  string content = 3;              // Streaming token content
+  bool is_final = 4;               // Whether this is the last message
+  string error = 5;                // Error message if any
+}
