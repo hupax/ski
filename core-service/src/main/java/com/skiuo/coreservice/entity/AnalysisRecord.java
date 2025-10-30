@@ -33,10 +33,10 @@ public class AnalysisRecord {
     private String content;
 
     @Column(name = "start_time_offset")
-    private Integer startTimeOffset;
+    private Double startTimeOffset;
 
     @Column(name = "end_time_offset")
-    private Integer endTimeOffset;
+    private Double endTimeOffset;
 
     @Column(name = "video_path", length = 500)
     private String videoPath;

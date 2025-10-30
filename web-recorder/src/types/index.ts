@@ -43,6 +43,24 @@ export const StorageType = {
 
 export type StorageType = (typeof StorageType)[keyof typeof StorageType];
 
+export const AppMode = {
+  RECORD: 'RECORD',
+  TEST: 'TEST',
+} as const;
+
+export type AppMode = (typeof AppMode)[keyof typeof AppMode];
+
+export const TestUploadState = {
+  IDLE: 'IDLE',
+  UPLOADING: 'UPLOADING',
+  WAITING: 'WAITING',
+  PAUSED: 'PAUSED',
+  COMPLETED: 'COMPLETED',
+  ERROR: 'ERROR',
+} as const;
+
+export type TestUploadState = (typeof TestUploadState)[keyof typeof TestUploadState];
+
 // ========== Configuration ==========
 
 export interface RecordingConfig {
@@ -65,6 +83,7 @@ export interface VideoUploadRequest {
   keepVideo: boolean;
   storageType: string;
   duration?: number;
+  isLastChunk?: boolean;
 }
 
 export interface VideoUploadResponse {
@@ -128,4 +147,12 @@ export interface AnalysisResult {
   windowIndex: number;
   content: string;
   timestamp: number;
+}
+
+// ========== Test Mode Types ==========
+
+export interface ChunkFile {
+  file: File;
+  index: number;
+  duration: number; // seconds
 }

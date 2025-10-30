@@ -20,8 +20,8 @@ public class AnalysisRecordResponse {
     private Long chunkId;
     private Integer windowIndex;
     private String content;
-    private Integer startTimeOffset;
-    private Integer endTimeOffset;
+    private Double startTimeOffset;
+    private Double endTimeOffset;
     private LocalDateTime createdAt;
 
     public static AnalysisRecordResponse fromEntity(AnalysisRecord record) {

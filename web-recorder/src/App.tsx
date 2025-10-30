@@ -1,19 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ConfigPanel } from './components/ConfigPanel';
 import { StatusIndicator } from './components/StatusIndicator';
 import { VideoRecorder } from './components/VideoRecorder';
+import { TestUploader } from './components/TestUploader';
 import { AnalysisDisplay } from './components/AnalysisDisplay';
 import { useMediaRecorder } from './hooks/useMediaRecorder';
 import { useWebSocket } from './hooks/useWebSocket';
 import { DEFAULT_CONFIG, UI_TEXT, updateChunkDuration } from './config/constants';
 import { getServerConfig } from './services/apiClient';
 import type { RecordingConfig } from './types';
-import { RecordingState } from './types';
+import { RecordingState, AppMode } from './types';
 
 function App() {
   // Configuration state
   const [config, setConfig] = useState<RecordingConfig>(DEFAULT_CONFIG);
   const [chunkDuration, setChunkDuration] = useState<number>(35); // seconds
+  const [appMode, setAppMode] = useState<AppMode>(AppMode.RECORD);
+
+  // Session ID state (unified for both record and test modes)
+  const [testModeSessionId, setTestModeSessionId] = useState<number | null>(null);
 
   // Fetch server config on mount
   useEffect(() => {
@@ -31,12 +36,12 @@ function App() {
     fetchConfig();
   }, []);
 
-  // MediaRecorder hook
+  // MediaRecorder hook (for RECORD mode)
   const {
     state,
     stream,
     error,
-    sessionId,
+    sessionId: recordModeSessionId,
     chunkIndex,
     startRecording,
     stopRecording,
@@ -44,11 +49,27 @@ function App() {
     resumeRecording,
   } = useMediaRecorder(config);
 
+  // Use appropriate sessionId based on app mode
+  const activeSessionId = appMode === AppMode.RECORD ? recordModeSessionId : testModeSessionId;
+
   // WebSocket hook for receiving analysis results
-  const { isConnected, results } = useWebSocket(sessionId);
+  const { isConnected, results } = useWebSocket(activeSessionId);
 
   // Disable config changes while recording
   const isConfigDisabled = state !== RecordingState.IDLE && state !== RecordingState.STOPPED;
+
+  // Handle test mode session ID changes
+  const handleTestModeSessionIdChange = useCallback((sessionId: number | null) => {
+    setTestModeSessionId(sessionId);
+    console.log('Test mode session ID updated:', sessionId);
+  }, []);
+
+  // Clear test mode session when switching modes
+  useEffect(() => {
+    if (appMode === AppMode.RECORD) {
+      setTestModeSessionId(null);
+    }
+  }, [appMode]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -68,7 +89,7 @@ function App() {
         <div className="mb-6">
           <StatusIndicator
             state={state}
-            sessionId={sessionId}
+            sessionId={activeSessionId}
             chunkIndex={chunkIndex}
             error={error}
           />
@@ -83,17 +104,27 @@ function App() {
               config={config}
               onChange={setConfig}
               disabled={isConfigDisabled}
+              appMode={appMode}
+              onAppModeChange={setAppMode}
             />
 
-            {/* Video Recorder */}
-            <VideoRecorder
-              state={state}
-              stream={stream}
-              onStart={startRecording}
-              onStop={stopRecording}
-              onPause={pauseRecording}
-              onResume={resumeRecording}
-            />
+            {/* Video Recorder or Test Uploader */}
+            {appMode === AppMode.RECORD ? (
+              <VideoRecorder
+                state={state}
+                stream={stream}
+                onStart={startRecording}
+                onStop={stopRecording}
+                onPause={pauseRecording}
+                onResume={resumeRecording}
+              />
+            ) : (
+              <TestUploader
+                config={config}
+                chunkDuration={chunkDuration}
+                onSessionIdChange={handleTestModeSessionIdChange}
+              />
+            )}
           </div>
 
           {/* Right Column: Analysis Results */}
@@ -101,7 +132,7 @@ function App() {
             <AnalysisDisplay
               results={results}
               isConnected={isConnected}
-              sessionId={sessionId}
+              sessionId={activeSessionId}
             />
           </div>
         </div>

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/videos")
@@ -45,7 +46,8 @@ public class VideoController {
             @RequestParam(value = "analysisMode", defaultValue = "SLIDING_WINDOW") String analysisMode,
             @RequestParam(value = "keepVideo", defaultValue = "false") Boolean keepVideo,
             @RequestParam(value = "storageType", defaultValue = "cos") String storageType,
-            @RequestParam(value = "duration", required = false) Integer duration) {
+            @RequestParam(value = "duration", required = false) Double duration,
+            @RequestParam(value = "isLastChunk", defaultValue = "false") Boolean isLastChunk) {
 
         try {
             log.info("Received video upload: sessionId={}, userId={}, chunkIndex={}, size={}",
@@ -67,7 +69,7 @@ public class VideoController {
                     session.getId(), chunkIndex, "", duration);
 
             // Start async processing
-            videoProcessingService.processVideoChunk(session, chunk, localPath);
+            videoProcessingService.processVideoChunk(session, chunk, localPath, isLastChunk);
 
             VideoUploadResponse response = VideoUploadResponse.builder()
                     .sessionId(session.getId())

@@ -34,10 +34,10 @@ public class GrpcClientService {
      * @param analysisMode Analysis mode (full/sliding_window)
      * @param windowSize   Window size in seconds
      * @param windowStep   Step size in seconds
-     * @return List of window file paths
+     * @return List of WindowInfo with path and time information
      */
-    public List<String> processVideo(String sessionId, Long chunkId, String videoPath,
-                                      String analysisMode, int windowSize, int windowStep) {
+    public List<WindowInfo> processVideo(String sessionId, Long chunkId, String videoPath,
+                                          String analysisMode, int windowSize, int windowStep) {
         try {
             ProcessRequest request = ProcessRequest.newBuilder()
                     .setSessionId(sessionId)
@@ -57,10 +57,10 @@ public class GrpcClientService {
                 throw new GrpcException("ProcessVideo failed: " + response.getError());
             }
 
-            List<String> windowPaths = response.getWindowPathsList();
-            log.info("ProcessVideo completed: {} windows created", windowPaths.size());
+            List<WindowInfo> windows = response.getWindowsList();
+            log.info("ProcessVideo completed: {} windows created", windows.size());
 
-            return windowPaths;
+            return windows;
 
         } catch (Exception e) {
             log.error("Failed to call ProcessVideo gRPC: {}", e.getMessage());
@@ -83,8 +83,8 @@ public class GrpcClientService {
      */
     public CompletableFuture<String> analyzeVideo(String sessionId, int windowIndex,
                                                     String videoUrl, String aiModel,
-                                                    String context, int startOffset,
-                                                    int endOffset,
+                                                    String context, Double startOffset,
+                                                    Double endOffset,
                                                     Consumer<String> onChunk) {
         CompletableFuture<String> future = new CompletableFuture<>();
         StringBuilder fullContent = new StringBuilder();
@@ -96,8 +96,8 @@ public class GrpcClientService {
                     .setVideoUrl(videoUrl)
                     .setAiModel(aiModel)
                     .setContext(context != null ? context : "")
-                    .setStartOffset(startOffset)
-                    .setEndOffset(endOffset)
+                    .setStartOffset(startOffset.intValue())
+                    .setEndOffset(endOffset.intValue())
                     .build();
 
             log.info("Calling AnalyzeVideo gRPC: sessionId={}, windowIndex={}, model={}",
@@ -153,8 +153,8 @@ public class GrpcClientService {
      * Synchronous version of analyzeVideo (waits for completion)
      */
     public String analyzeVideoSync(String sessionId, int windowIndex, String videoUrl,
-                                    String aiModel, String context, int startOffset,
-                                    int endOffset, Consumer<String> onChunk) {
+                                    String aiModel, String context, Double startOffset,
+                                    Double endOffset, Consumer<String> onChunk) {
         try {
             return analyzeVideo(sessionId, windowIndex, videoUrl, aiModel, context,
                     startOffset, endOffset, onChunk).get(5, TimeUnit.MINUTES);
@@ -194,6 +194,71 @@ public class GrpcClientService {
         } catch (Exception e) {
             log.error("Failed to call ExtractTail gRPC: {}", e.getMessage());
             throw new GrpcException("Failed to call ExtractTail gRPC", e);
+        }
+    }
+
+    /**
+     * Extract a specific time segment from video
+     *
+     * @param videoPath  Input video file path
+     * @param outputPath Output file path for segment
+     * @param startTime  Start time in seconds
+     * @param endTime    End time in seconds
+     * @return Path to extracted segment file
+     */
+    public String extractSegment(String videoPath, String outputPath, Double startTime, Double endTime) {
+        try {
+            ExtractSegmentRequest request = ExtractSegmentRequest.newBuilder()
+                    .setVideoPath(videoPath)
+                    .setOutputPath(outputPath)
+                    .setStartTime(startTime.floatValue())
+                    .setEndTime(endTime.floatValue())
+                    .build();
+
+            log.info("Calling ExtractSegment gRPC: video={}, range=[{}s, {}s]", videoPath, startTime, endTime);
+
+            ExtractSegmentResponse response = blockingStub.extractSegment(request);
+
+            if (response.getError() != null && !response.getError().isEmpty()) {
+                throw new GrpcException("ExtractSegment failed: " + response.getError());
+            }
+
+            log.info("ExtractSegment completed: output={}", response.getOutputPath());
+            return response.getOutputPath();
+
+        } catch (Exception e) {
+            log.error("Failed to call ExtractSegment gRPC: {}", e.getMessage());
+            throw new GrpcException("Failed to call ExtractSegment gRPC", e);
+        }
+    }
+
+    /**
+     * Get video duration using FFmpeg
+     *
+     * @param videoPath Video file path
+     * @return Duration in seconds
+     */
+    public Double getVideoDuration(String videoPath) {
+        try {
+            GetVideoDurationRequest request = GetVideoDurationRequest.newBuilder()
+                    .setVideoPath(videoPath)
+                    .build();
+
+            log.info("Calling GetVideoDuration gRPC: video={}", videoPath);
+
+            GetVideoDurationResponse response = blockingStub.getVideoDuration(request);
+
+            if (response.getError() != null && !response.getError().isEmpty()) {
+                throw new GrpcException("GetVideoDuration failed: " + response.getError());
+            }
+
+            Double duration = (double) response.getDuration();
+            log.info("GetVideoDuration completed: duration={}s", duration);
+            return duration;
+
+        } catch (Exception e) {
+            log.error("Failed to call GetVideoDuration gRPC: {}", e.getMessage());
+            throw new GrpcException("Failed to call GetVideoDuration gRPC", e);
         }
     }
 

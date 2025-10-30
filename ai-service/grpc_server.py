@@ -58,14 +58,22 @@ class VideoAnalysisServicer(video_analysis_pb2_grpc.VideoAnalysisServiceServicer
             if analysis_mode.lower() == "full":
                 # For full mode, return the original video path
                 logger.info("Full mode: returning original video path")
+                # Get video duration for full mode
+                duration = self.video_processor._get_video_duration(video_path)
+                window_info = video_analysis_pb2.WindowInfo(
+                    path=video_path,
+                    start_time=0,
+                    end_time=duration,
+                    duration=duration
+                )
                 return video_analysis_pb2.ProcessResponse(
-                    window_paths=[video_path],
+                    windows=[window_info],
                     error=""
                 )
 
             elif analysis_mode.lower() == "sliding_window":
                 # Slice video into windows
-                window_paths = self.video_processor.slice_video(
+                window_infos = self.video_processor.slice_video(
                     video_path=video_path,
                     session_id=session_id,
                     chunk_id=chunk_id,
@@ -73,10 +81,21 @@ class VideoAnalysisServicer(video_analysis_pb2_grpc.VideoAnalysisServiceServicer
                     window_step=window_step
                 )
 
-                logger.info(f"ProcessVideo completed: {len(window_paths)} windows created")
+                # Build WindowInfo messages
+                windows = []
+                for path, start_time, end_time, duration in window_infos:
+                    window_info = video_analysis_pb2.WindowInfo(
+                        path=path,
+                        start_time=start_time,
+                        end_time=end_time,
+                        duration=duration
+                    )
+                    windows.append(window_info)
+
+                logger.info(f"ProcessVideo completed: {len(windows)} windows created")
 
                 return video_analysis_pb2.ProcessResponse(
-                    window_paths=window_paths,
+                    windows=windows,
                     error=""
                 )
 
@@ -310,6 +329,92 @@ class VideoAnalysisServicer(video_analysis_pb2_grpc.VideoAnalysisServiceServicer
             logger.error(f"Unexpected error in ConcatVideos: {e}")
             return video_analysis_pb2.ConcatVideosResponse(
                 output_path="",
+                error=f"Internal error: {e}"
+            )
+
+    def ExtractSegment(self, request, context):
+        """
+        Extract a specific time segment from video
+
+        Args:
+            request: ExtractSegmentRequest
+            context: gRPC context
+
+        Returns:
+            ExtractSegmentResponse with output file path
+        """
+        try:
+            video_path = request.video_path
+            output_path = request.output_path
+            start_time = request.start_time
+            end_time = request.end_time
+
+            logger.info(f"ExtractSegment called: video={video_path}, range=[{start_time}s, {end_time}s]")
+
+            # Extract segment using VideoProcessor
+            result_path = self.video_processor.extract_segment(
+                video_path=video_path,
+                output_path=output_path,
+                start_time=start_time,
+                end_time=end_time
+            )
+
+            logger.info(f"ExtractSegment completed: output={result_path}")
+
+            return video_analysis_pb2.ExtractSegmentResponse(
+                output_path=result_path,
+                error=""
+            )
+
+        except VideoProcessingError as e:
+            logger.error(f"ExtractSegment failed: {e}")
+            return video_analysis_pb2.ExtractSegmentResponse(
+                output_path="",
+                error=str(e)
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error in ExtractSegment: {e}")
+            return video_analysis_pb2.ExtractSegmentResponse(
+                output_path="",
+                error=f"Internal error: {e}"
+            )
+
+    def GetVideoDuration(self, request, context):
+        """
+        Get video duration using FFmpeg
+
+        Args:
+            request: GetVideoDurationRequest
+            context: gRPC context
+
+        Returns:
+            GetVideoDurationResponse
+        """
+        try:
+            video_path = request.video_path
+
+            logger.info(f"GetVideoDuration called: video={video_path}")
+
+            # Get video duration
+            duration = self.video_processor._get_video_duration(video_path)
+
+            logger.info(f"GetVideoDuration completed: duration={duration}s")
+
+            return video_analysis_pb2.GetVideoDurationResponse(
+                duration=duration,
+                error=""
+            )
+
+        except VideoProcessingError as e:
+            logger.error(f"GetVideoDuration failed: {e}")
+            return video_analysis_pb2.GetVideoDurationResponse(
+                duration=0.0,
+                error=str(e)
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error in GetVideoDuration: {e}")
+            return video_analysis_pb2.GetVideoDurationResponse(
+                duration=0.0,
                 error=f"Internal error: {e}"
             )
 

@@ -33,7 +33,7 @@ class VideoProcessor:
             chunk_id: int,
             window_size: int = None,
             window_step: int = None
-    ) -> List[str]:
+    ) -> List[tuple]:
         """
         Slice video using sliding window strategy
 
@@ -45,7 +45,7 @@ class VideoProcessor:
             window_step: Step size in seconds (default from config)
 
         Returns:
-            List of sliced window file paths
+            List of tuples: (window_path, start_time, end_time, duration)
 
         Raises:
             VideoProcessingError: If video processing fails
@@ -71,14 +71,17 @@ class VideoProcessor:
             Path(output_dir).mkdir(parents=True, exist_ok=True)
 
             # Slice video
-            window_paths = []
+            window_infos = []
             for i, (start, end) in enumerate(windows):
                 output_path = os.path.join(output_dir, f"window_{i}.webm")
-                self._slice_segment(video_path, output_path, start, end - start)
-                window_paths.append(output_path)
-                logger.info(f"Created window {i}: {start}-{end}s -> {output_path}")
+                actual_duration = end - start
+                self._slice_segment(video_path, output_path, start, actual_duration)
 
-            return window_paths
+                # Return tuple: (path, start_time, end_time, duration)
+                window_infos.append((output_path, start, end, actual_duration))
+                logger.info(f"Created window {i}: [{start:.1f}-{end:.1f}s] duration={actual_duration:.1f}s -> {output_path}")
+
+            return window_infos
 
         except FFmpegError as e:
             logger.error(f"FFmpeg error: {e}")
@@ -290,6 +293,61 @@ class VideoProcessor:
         except Exception as e:
             logger.error(f"Unexpected error in concat_videos: {e}")
             raise VideoProcessingError(f"Video concatenation failed: {e}")
+
+    def extract_segment(
+            self,
+            video_path: str,
+            output_path: str,
+            start_time: float,
+            end_time: float
+    ) -> str:
+        """
+        Extract a specific time segment from video
+
+        Args:
+            video_path: Input video file
+            output_path: Output segment file
+            start_time: Start time in seconds
+            end_time: End time in seconds
+
+        Returns:
+            Path to extracted segment
+        """
+        try:
+            # Validate time range
+            video_duration = self._get_video_duration(video_path)
+            if start_time < 0 or end_time > video_duration or start_time >= end_time:
+                raise ValueError(f"Invalid time range: [{start_time}, {end_time}] for video duration {video_duration}s")
+
+            # Extract segment using FFmpeg
+            # Use -ss before -i for faster seeking (input seeking)
+            # Use -c copy to avoid re-encoding
+            cmd = [
+                'ffmpeg',
+                '-y',
+                '-ss', str(start_time),
+                '-to', str(end_time),
+                '-i', video_path,
+                '-c', 'copy',  # Copy without re-encoding for speed
+                output_path
+            ]
+
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+
+            logger.info(f"Extracted segment [{start_time}s, {end_time}s] from {video_path} to {output_path}")
+            return output_path
+
+        except subprocess.CalledProcessError as e:
+            logger.error(f"FFmpeg extract segment failed: {e.stderr}")
+            raise FFmpegError(f"Segment extraction failed: {e.stderr}")
+        except Exception as e:
+            logger.error(f"Unexpected error in extract_segment: {e}")
+            raise VideoProcessingError(f"Segment extraction failed: {e}")
 
     def cleanup_session(self, session_id: str):
         """

@@ -30,7 +30,7 @@ public class VideoChunk {
     private String minioPath;
 
     @Column(name = "duration")
-    private Integer duration;
+    private Double duration;
 
     @Column(name = "status", length = 20)
     @Enumerated(EnumType.STRING)

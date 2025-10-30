@@ -34,7 +34,7 @@ public class AnalysisService {
      */
     @Transactional
     public AnalysisRecord saveAnalysisRecord(Long sessionId, Long chunkId, Integer windowIndex,
-                                              String content, Integer startOffset, Integer endOffset, String videoPath) {
+                                              String content, Double startOffset, Double endOffset, String videoPath) {
         AnalysisRecord record = AnalysisRecord.builder()
                 .sessionId(sessionId)
                 .chunkId(chunkId)

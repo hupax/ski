@@ -17,22 +17,32 @@
 ### 1. 视频录制
 - 获取浏览器摄像头权限
 - MediaRecorder API 录制 WebM 格式视频
-- 每 30 秒自动分段上传 chunk
+- 动态 chunk 时长（从服务器获取推荐配置）
+- 支持暂停/恢复，精确跟踪录制时长
+- 停止录制后等待最后一个chunk上传完成，再通知后端
 
-### 2. API 对接
+### 2. 测试模式
+- 上传本地预切分的chunk文件
+- 模拟真实录制流程（按时间间隔上传）
+- 支持暂停/继续/停止
+- 适合开发测试和演示
+
+### 3. API 对接
 - HTTP 上传视频到 core-service
 - 实时获取会话状态
 - 查询历史分析记录
+- 完成会话通知（`finishSession`）
 
-### 3. WebSocket 实时推送
+### 4. WebSocket 实时推送
 - STOMP 协议连接
 - 订阅 session topic
 - 实时接收 AI 分析流式结果
 
-### 4. 用户配置
+### 5. 用户配置
 - AI 模型选择（Qwen / Gemini）
-- 分析模式选择（整体分析 / 半实时模式）
+- 分析模式选择（完整分析 / 滑动窗口）
 - 视频保留策略（删除 / 保留）
+- 存储服务选择（MinIO / OSS / COS）
 
 ## 快速开始
 
@@ -88,7 +98,8 @@ web-recorder/
 │   │   ├── AnalysisDisplay.tsx    # AI 分析结果显示
 │   │   ├── ConfigPanel.tsx        # 配置面板
 │   │   ├── StatusIndicator.tsx    # 状态指示器
-│   │   └── VideoRecorder.tsx      # 视频录制组件
+│   │   ├── VideoRecorder.tsx      # 视频录制组件
+│   │   └── TestUploader.tsx       # 测试模式上传组件
 │   ├── hooks/                # 自定义 Hooks
 │   │   ├── useMediaRecorder.ts    # MediaRecorder 管理
 │   │   └── useWebSocket.ts        # WebSocket 连接管理
@@ -157,6 +168,34 @@ GET /api/videos/sessions/{sessionId}
 }
 ```
 
+#### 完成会话
+```http
+POST /api/videos/sessions/{sessionId}/finish
+
+返回:
+{
+  "sessionId": 123,
+  "status": "COMPLETED",
+  "message": "Session finished successfully"
+}
+```
+
+**重要**：前端停止录制后必须调用此接口，等待最后一个chunk上传完成后调用。
+
+#### 获取服务器配置
+```http
+GET /api/config
+
+返回:
+{
+  "windowSize": 15,
+  "windowStep": 10,
+  "recommendedChunkDuration": 35
+}
+```
+
+前端启动时获取此配置，动态调整chunk时长以匹配后端窗口参数。
+
 ### WebSocket
 
 #### 连接端点
@@ -180,14 +219,42 @@ ws://localhost:8080/ws
 }
 ```
 
+## 测试模式使用
+
+### 准备测试文件
+
+使用 ai-service 的 `test_video_splitter.py` 切分视频：
+
+```bash
+cd ai-service
+python3.12 test_video_splitter.py /path/to/video.mp4 output_dir/ --chunk-duration 35
+```
+
+生成 `chunk_0.webm`, `chunk_1.webm`, ...
+
+### 使用测试上传
+
+1. 在前端界面切换到"测试模式"标签页
+2. 点击"选择 chunk 文件"，多选生成的 chunk 文件
+3. 配置 AI 模型、分析模式、存储服务等参数
+4. 点击"开始测试"
+5. 系统会按配置的时间间隔逐个上传chunk，模拟真实录制
+6. 上传完成后自动调用 `finishSession`
+
+**优势**：
+- 无需摄像头，可重复测试
+- 可使用任意视频文件
+- 测试不同时长和场景
+
 ## 配置说明
 
 ### 录制配置 (src/config/constants.ts)
 
 ```typescript
 export const RECORDING_CONFIG = {
-  // Chunk 分段时长（毫秒）
-  CHUNK_DURATION: 30000,  // 30秒
+  // Chunk 分段时长（毫秒） - 动态从服务器获取
+  // 通过 /api/config 接口获取 recommendedChunkDuration
+  CHUNK_DURATION: 35000,  // 默认35秒，实际由服务器配置决定
 
   // 视频约束
   VIDEO_CONSTRAINTS: {
@@ -210,10 +277,16 @@ export const RECORDING_CONFIG = {
 export const DEFAULT_CONFIG = {
   USER_ID: 1,                              // 固定用户 ID
   AI_MODEL: AIModel.QWEN,                  // 默认使用 Qwen
-  ANALYSIS_MODE: AnalysisMode.SLIDING_WINDOW,  // 默认半实时模式
+  ANALYSIS_MODE: AnalysisMode.SLIDING_WINDOW,  // 默认滑动窗口模式
   KEEP_VIDEO: false,                       // 默认不保留视频
+  STORAGE_TYPE: StorageType.COS,           // 默认使用 COS
 };
 ```
+
+**重要说明**：
+- **动态 chunk 时长**：前端启动时从 `/api/config` 获取后端配置的推荐值
+- **存储服务**：可选 MinIO(本地)、OSS(阿里云)、COS(腾讯云)
+- **chunk 时长计算**：`recommendedChunkDuration = windowSize + 2 × windowStep`
 
 ## 浏览器兼容性
 

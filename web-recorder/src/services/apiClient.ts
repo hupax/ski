@@ -31,6 +31,10 @@ export async function uploadVideoChunk(
     formData.append('duration', request.duration.toString());
   }
 
+  if (request.isLastChunk !== undefined) {
+    formData.append('isLastChunk', request.isLastChunk.toString());
+  }
+
   try {
     const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.UPLOAD_VIDEO}`, {
       method: 'POST',
@@ -92,6 +96,31 @@ export async function getSessionRecords(
     return data;
   } catch (error) {
     console.error('Error getting session records:', error);
+    throw error;
+  }
+}
+
+/**
+ * Finish session (analyze remaining video and complete)
+ */
+export async function finishSession(sessionId: number): Promise<void> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/videos/sessions/${sessionId}/finish`,
+      {
+        method: 'POST',
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Failed to finish session: ${error.error || response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('Session finished successfully:', data);
+  } catch (error) {
+    console.error('Error finishing session:', error);
     throw error;
   }
 }

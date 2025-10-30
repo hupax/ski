@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from proto import video_analysis_pb2 as video__analysis__pb2
+from . import video_analysis_pb2 as video__analysis__pb2
 
 GRPC_GENERATED_VERSION = '1.68.1'
 GRPC_VERSION = grpc.__version__
@@ -45,6 +45,26 @@ class VideoAnalysisServiceStub(object):
                 request_serializer=video__analysis__pb2.AnalysisRequest.SerializeToString,
                 response_deserializer=video__analysis__pb2.AnalysisResponse.FromString,
                 _registered_method=True)
+        self.ExtractTail = channel.unary_unary(
+                '/videoanalysis.VideoAnalysisService/ExtractTail',
+                request_serializer=video__analysis__pb2.ExtractTailRequest.SerializeToString,
+                response_deserializer=video__analysis__pb2.ExtractTailResponse.FromString,
+                _registered_method=True)
+        self.ConcatVideos = channel.unary_unary(
+                '/videoanalysis.VideoAnalysisService/ConcatVideos',
+                request_serializer=video__analysis__pb2.ConcatVideosRequest.SerializeToString,
+                response_deserializer=video__analysis__pb2.ConcatVideosResponse.FromString,
+                _registered_method=True)
+        self.ExtractSegment = channel.unary_unary(
+                '/videoanalysis.VideoAnalysisService/ExtractSegment',
+                request_serializer=video__analysis__pb2.ExtractSegmentRequest.SerializeToString,
+                response_deserializer=video__analysis__pb2.ExtractSegmentResponse.FromString,
+                _registered_method=True)
+        self.GetVideoDuration = channel.unary_unary(
+                '/videoanalysis.VideoAnalysisService/GetVideoDuration',
+                request_serializer=video__analysis__pb2.GetVideoDurationRequest.SerializeToString,
+                response_deserializer=video__analysis__pb2.GetVideoDurationResponse.FromString,
+                _registered_method=True)
 
 
 class VideoAnalysisServiceServicer(object):
@@ -67,6 +87,38 @@ class VideoAnalysisServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ExtractTail(self, request, context):
+        """Step 3: Extract video tail (for cross-chunk windows)
+        Extracts last N seconds from a video
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ConcatVideos(self, request, context):
+        """Step 4: Concatenate videos (for cross-chunk windows)
+        Joins multiple videos into one
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ExtractSegment(self, request, context):
+        """Step 5: Extract video segment (for master video sliding window)
+        Extracts a specific time range from video
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetVideoDuration(self, request, context):
+        """Step 6: Get video duration
+        Returns the duration of a video file
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_VideoAnalysisServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -79,6 +131,26 @@ def add_VideoAnalysisServiceServicer_to_server(servicer, server):
                     servicer.AnalyzeVideo,
                     request_deserializer=video__analysis__pb2.AnalysisRequest.FromString,
                     response_serializer=video__analysis__pb2.AnalysisResponse.SerializeToString,
+            ),
+            'ExtractTail': grpc.unary_unary_rpc_method_handler(
+                    servicer.ExtractTail,
+                    request_deserializer=video__analysis__pb2.ExtractTailRequest.FromString,
+                    response_serializer=video__analysis__pb2.ExtractTailResponse.SerializeToString,
+            ),
+            'ConcatVideos': grpc.unary_unary_rpc_method_handler(
+                    servicer.ConcatVideos,
+                    request_deserializer=video__analysis__pb2.ConcatVideosRequest.FromString,
+                    response_serializer=video__analysis__pb2.ConcatVideosResponse.SerializeToString,
+            ),
+            'ExtractSegment': grpc.unary_unary_rpc_method_handler(
+                    servicer.ExtractSegment,
+                    request_deserializer=video__analysis__pb2.ExtractSegmentRequest.FromString,
+                    response_serializer=video__analysis__pb2.ExtractSegmentResponse.SerializeToString,
+            ),
+            'GetVideoDuration': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetVideoDuration,
+                    request_deserializer=video__analysis__pb2.GetVideoDurationRequest.FromString,
+                    response_serializer=video__analysis__pb2.GetVideoDurationResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -136,6 +208,114 @@ class VideoAnalysisService(object):
             '/videoanalysis.VideoAnalysisService/AnalyzeVideo',
             video__analysis__pb2.AnalysisRequest.SerializeToString,
             video__analysis__pb2.AnalysisResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ExtractTail(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/videoanalysis.VideoAnalysisService/ExtractTail',
+            video__analysis__pb2.ExtractTailRequest.SerializeToString,
+            video__analysis__pb2.ExtractTailResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ConcatVideos(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/videoanalysis.VideoAnalysisService/ConcatVideos',
+            video__analysis__pb2.ConcatVideosRequest.SerializeToString,
+            video__analysis__pb2.ConcatVideosResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ExtractSegment(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/videoanalysis.VideoAnalysisService/ExtractSegment',
+            video__analysis__pb2.ExtractSegmentRequest.SerializeToString,
+            video__analysis__pb2.ExtractSegmentResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetVideoDuration(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/videoanalysis.VideoAnalysisService/GetVideoDuration',
+            video__analysis__pb2.GetVideoDurationRequest.SerializeToString,
+            video__analysis__pb2.GetVideoDurationResponse.FromString,
             options,
             channel_credentials,
             insecure,

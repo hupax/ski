@@ -47,7 +47,13 @@ pip3.12 install -r requirements.txt
 
 ### 3. 生成 gRPC 代码
 
+**重要**：确保在激活虚拟环境后执行以下步骤。
+
 ```bash
+# 确保已激活虚拟环境
+source .venv/bin/activate
+
+# 生成 proto 文件
 python3.12 -m grpc_tools.protoc \
   -I../proto \
   --python_out=./proto \
@@ -58,6 +64,22 @@ python3.12 -m grpc_tools.protoc \
 这会在 `proto/` 目录生成：
 - `video_analysis_pb2.py`
 - `video_analysis_pb2_grpc.py`
+
+**修复导入问题**：生成后需要手动修复导入语句
+
+```bash
+# 修复 video_analysis_pb2_grpc.py 中的导入
+sed -i '' 's/^import video_analysis_pb2 as video__analysis__pb2/from . import video_analysis_pb2 as video__analysis__pb2/' proto/video_analysis_pb2_grpc.py
+```
+
+或手动编辑 `proto/video_analysis_pb2_grpc.py`，将：
+```python
+import video_analysis_pb2 as video__analysis__pb2
+```
+改为：
+```python
+from . import video_analysis_pb2 as video__analysis__pb2
+```
 
 ### 4. 配置环境变量
 
@@ -95,10 +117,26 @@ DEBUG_MODE=false
 ## 运行服务
 
 ```bash
-python3.12 main.py
+# 确保已激活虚拟环境
+source .venv/bin/activate
+
+# 启动 gRPC 服务
+python3.12 grpc_server.py
 ```
 
 服务将启动在端口 `50051`（默认）。
+
+**预期输出**：
+```
+Loading environment variables from .env file
+✓ Loaded .env file: /Users/xxx/ski/.env
+==================================================
+AI Service Configuration
+==================================================
+...
+Server started on port 50051
+Waiting for requests...
+```
 
 ## 架构说明
 
@@ -290,11 +328,41 @@ grpcurl -plaintext \
 
 ## 故障排查
 
-### Proto 文件未生成
+### Proto 导入错误
 ```
-ERROR: No module named 'proto.video_analysis_pb2'
+ERROR: Proto files not generated. Please run:
+ERROR: No module named 'video_analysis_pb2'
 ```
-**解决**：运行 proto 生成命令（见步骤 3）
+
+**原因**：
+1. proto 文件未生成
+2. 在虚拟环境外执行了 protoc 命令
+3. 生成后未修复导入语句
+
+**解决步骤**：
+```bash
+# 1. 激活虚拟环境
+source .venv/bin/activate
+
+# 2. 确认使用虚拟环境的 python
+which python3.12
+# 应该显示：/Users/xxx/ski/ai-service/.venv/bin/python3.12
+
+# 3. 生成 proto 文件
+python3.12 -m grpc_tools.protoc \
+  -I../proto \
+  --python_out=./proto \
+  --grpc_python_out=./proto \
+  ../proto/video_analysis.proto
+
+# 4. 修复导入语句
+sed -i '' 's/^import video_analysis_pb2 as video__analysis__pb2/from . import video_analysis_pb2 as video__analysis__pb2/' proto/video_analysis_pb2_grpc.py
+
+# 5. 重新启动服务
+python3.12 grpc_server.py
+```
+
+**关键**：所有 Python 操作都必须在同一个虚拟环境内执行
 
 ### FFmpeg 未安装
 ```

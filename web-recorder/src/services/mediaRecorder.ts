@@ -1,7 +1,7 @@
 import { RECORDING_CONFIG } from '../config/constants';
 
 export interface MediaRecorderOptions {
-  onDataAvailable: (blob: Blob, duration: number) => void;
+  onDataAvailable: (blob: Blob, duration: number, isLastChunk: boolean) => void;
   onError: (error: Error) => void;
   onStop?: () => void;
 }
@@ -16,6 +16,7 @@ export class VideoRecorderService {
   private lastChunkTime: number = 0;
   private chunkIntervalId: number | null = null;
   private currentOptions: MediaRecorderOptions | null = null;
+  private isStopping: boolean = false; // Track if stopRecording was called
 
   // Track actual recording time (excluding paused time)
   private recordingStartTime: number = 0;
@@ -56,6 +57,7 @@ export class VideoRecorderService {
 
     try {
       this.currentOptions = options;
+      this.isStopping = false; // Reset stopping flag for new recording
       this.startSingleRecordingSession();
 
       // Set up interval to restart recording every CHUNK_DURATION
@@ -110,9 +112,10 @@ export class VideoRecorderService {
         }
 
         const duration = Math.round(actualRecordingTime / 1000); // Duration in seconds
+        const isLastChunk = this.isStopping; // Mark if this is the final chunk
 
-        console.log(`Complete chunk available: ${event.data.size} bytes, actual duration: ${duration}s (excluding paused time)`);
-        this.currentOptions!.onDataAvailable(event.data, duration);
+        console.log(`Complete chunk available: ${event.data.size} bytes, actual duration: ${duration}s (excluding paused time), isLastChunk=${isLastChunk}`);
+        this.currentOptions!.onDataAvailable(event.data, duration, isLastChunk);
       }
     };
 
@@ -145,6 +148,9 @@ export class VideoRecorderService {
    * Stop recording
    */
   stopRecording(): void {
+    // Mark as stopping to flag the last chunk
+    this.isStopping = true;
+
     // Clear the interval first to prevent automatic restart
     if (this.chunkIntervalId) {
       clearInterval(this.chunkIntervalId);
@@ -154,10 +160,11 @@ export class VideoRecorderService {
 
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       this.mediaRecorder.stop();
-      console.log('Recording stopped');
+      console.log('Recording stopped - last chunk will be marked');
     }
 
-    this.currentOptions = null;
+    // Don't clear currentOptions here - ondataavailable callback still needs it
+    // It will be cleared in cleanup()
   }
 
   /**

@@ -32,29 +32,69 @@ public class CleanupService {
      *
      * @param session   Session entity
      * @param chunk     Video chunk entity
-     * @param localPath Local file path
+     * @param localPath Local file path (uploaded chunk)
      */
     public void cleanupAfterProcessing(Session session, VideoChunk chunk, String localPath) {
         try {
-            // Always delete local temporary file
+            // Always delete uploaded chunk file (already appended to master video)
             deleteLocalFile(localPath);
 
-            // Delete storage files if not keeping videos
-            if (!session.getKeepVideo()) {
-                deleteStorageFilesForChunk(session, chunk);
+            // Check if session is finished
+            boolean sessionFinished = session.getStatus() == Session.SessionStatus.COMPLETED ||
+                                    session.getStatus() == Session.SessionStatus.FAILED;
+
+            if (sessionFinished) {
+                // Session ended: cleanup master video
+                cleanupMasterVideo(session);
             }
 
             // Update chunk status
-            chunk.setStatus(VideoChunk.ChunkStatus.DELETED);
-            chunk.setAnalyzedAt(LocalDateTime.now());
-            videoChunkRepository.save(chunk);
+            if (chunk != null) {
+                chunk.setStatus(VideoChunk.ChunkStatus.ANALYZED);
+                chunk.setAnalyzedAt(LocalDateTime.now());
+                videoChunkRepository.save(chunk);
+            }
 
-            log.info("Cleanup completed: sessionId={}, chunkId={}, keepVideo={}",
-                    session.getId(), chunk.getId(), session.getKeepVideo());
+            log.info("Cleanup completed: sessionId={}, chunkId={}, sessionFinished={}, keepVideo={}",
+                    session.getId(), chunk != null ? chunk.getId() : "null", sessionFinished, session.getKeepVideo());
 
         } catch (Exception e) {
             log.error("Cleanup failed: sessionId={}, error={}", session.getId(), e.getMessage());
             // Don't throw - cleanup failures shouldn't break the flow
+        }
+    }
+
+    /**
+     * Cleanup master video
+     * Called when session ends
+     *
+     * @param session Session entity
+     */
+    public void cleanupMasterVideo(Session session) {
+        try {
+            if (session.getMasterVideoPath() != null) {
+                // If keepVideo=true, upload master video to storage before deleting local copy
+                if (session.getKeepVideo()) {
+                    try {
+                        StorageService storageService = storageServiceFactory.getStorageService(session.getStorageType());
+                        String storagePath = "sessions/" + session.getId() + "/master_video_final.webm";
+                        storageService.uploadFile(session.getMasterVideoPath(), storagePath);
+                        log.info("Uploaded final master video to storage: {}", storagePath);
+                    } catch (Exception e) {
+                        log.error("Failed to upload master video to storage: {}", e.getMessage());
+                    }
+                }
+
+                // Always delete local master video
+                deleteLocalFile(session.getMasterVideoPath());
+                log.info("Deleted local master video: {}", session.getMasterVideoPath());
+
+                // Clear master video path in session
+                session.setMasterVideoPath(null);
+                sessionRepository.save(session);
+            }
+        } catch (Exception e) {
+            log.error("Failed to cleanup master video for session {}: {}", session.getId(), e.getMessage());
         }
     }
 
@@ -72,23 +112,6 @@ public class CleanupService {
             }
         } catch (IOException e) {
             log.warn("Failed to delete local file: {}, error={}", filePath, e.getMessage());
-        }
-    }
-
-    /**
-     * Delete storage files for a chunk
-     *
-     * @param session Session entity
-     * @param chunk Video chunk
-     */
-    private void deleteStorageFilesForChunk(Session session, VideoChunk chunk) {
-        try {
-            if (chunk.getMinioPath() != null && !chunk.getMinioPath().isEmpty()) {
-                StorageService storageService = storageServiceFactory.getStorageService(session.getStorageType());
-                storageService.deleteObject(chunk.getMinioPath());
-            }
-        } catch (Exception e) {
-            log.warn("Failed to delete storage files for chunk {}: {}", chunk.getId(), e.getMessage());
         }
     }
 
@@ -133,42 +156,4 @@ public class CleanupService {
         }
     }
 
-    /**
-     * Scheduled task: cleanup orphaned storage files
-     * Runs daily, deletes files without database records
-     */
-    @Scheduled(cron = "0 0 2 * * ?") // 2 AM daily
-    public void cleanupOrphanedStorageFiles() {
-        log.info("Starting orphaned storage files cleanup");
-
-        try {
-            // Find chunks marked as DELETED but still may have storage files
-            List<VideoChunk> deletedChunks = videoChunkRepository.findByStatus(VideoChunk.ChunkStatus.DELETED);
-
-            for (VideoChunk chunk : deletedChunks) {
-                if (chunk.getMinioPath() != null && !chunk.getMinioPath().isEmpty()) {
-                    try {
-                        // Get session to determine storage type
-                        Session session = sessionRepository.findById(chunk.getSessionId())
-                                .orElse(null);
-
-                        if (session != null) {
-                            StorageService storageService = storageServiceFactory.getStorageService(session.getStorageType());
-                            storageService.deleteObject(chunk.getMinioPath());
-                            log.info("Deleted orphaned storage file: {}", chunk.getMinioPath());
-                        } else {
-                            log.warn("Session not found for chunk {}, skipping cleanup", chunk.getId());
-                        }
-                    } catch (Exception e) {
-                        log.warn("Failed to delete orphaned storage file {}: {}", chunk.getMinioPath(), e.getMessage());
-                    }
-                }
-            }
-
-            log.info("Orphaned storage files cleanup completed");
-
-        } catch (Exception e) {
-            log.error("Orphaned files cleanup failed: {}", e.getMessage());
-        }
-    }
 }

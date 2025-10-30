@@ -5,11 +5,12 @@ Spring Boot 业务中枢 - 视频AI分析系统
 ## 功能概述
 
 - 接收前端视频上传
-- 协调视频处理流程（整体分析 / 半实时滑动窗口）
-- MinIO 对象存储管理
+- 协调视频处理流程（完整分析 / 滑动窗口）
+- **多存储服务支持**（MinIO / Aliyun OSS / Tencent COS）
 - gRPC 调用 ai-service
 - PostgreSQL 数据持久化
 - WebSocket 实时结果推送
+- **异步任务追踪**（防止并发竞态条件）
 
 ## 编译和运行
 
@@ -18,7 +19,10 @@ Spring Boot 业务中枢 - 视频AI分析系统
 - Java 17+
 - Maven 3.6+
 - PostgreSQL (运行中)
-- MinIO (运行中)
+- **存储服务**（以下三选一）：
+  - MinIO (自建，适合开发测试)
+  - Aliyun OSS (阿里云对象存储)
+  - Tencent COS (腾讯云对象存储，推荐)
 - ai-service (运行中的 gRPC 服务)
 
 ### 1. 生成 gRPC 代码
@@ -32,31 +36,54 @@ mvn clean compile
 
 ### 2. 配置环境变量
 
-确保项目根目录的 `.env` 文件已正确配置，或者直接设置环境变量：
+**重要**：core-service 使用 **dotenv-java** 自动加载项目根目录的 `.env` 文件。
+
+确保 `/Users/xxx/ski/.env` 文件包含以下配置：
 
 ```bash
 # 数据库
-export POSTGRES_HOST=localhost
-export POSTGRES_PORT=5432
-export POSTGRES_DB=skiuo
-export POSTGRES_USER=skiuo
-export POSTGRES_PASSWORD=your_password
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=skiuo
+POSTGRES_USER=skiuo
+POSTGRES_PASSWORD=your_password
 
-# MinIO
-export MINIO_ENDPOINT=http://localhost:9000
-export MINIO_ACCESS_KEY=minioadmin
-export MINIO_SECRET_KEY=minioadmin
-export MINIO_BUCKET_NAME=skiuo-videos
+# 存储服务（3选1）
+STORAGE_TYPE=cos  # minio | oss | cos
+
+# COS (推荐国内部署)
+COS_SECRET_ID=your_cos_secret_id
+COS_SECRET_KEY=your_cos_secret_key
+COS_REGION=ap-guangzhou
+COS_BUCKET_NAME=your_bucket_name
+
+# OSS (阿里云)
+OSS_ENDPOINT=oss-cn-hangzhou.aliyuncs.com
+OSS_ACCESS_KEY_ID=your_oss_key_id
+OSS_ACCESS_KEY_SECRET=your_oss_key_secret
+OSS_BUCKET_NAME=your_bucket_name
+OSS_REGION=cn-hangzhou
+
+# MinIO (本地开发)
+MINIO_ENDPOINT=http://localhost:9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+MINIO_BUCKET_NAME=skiuo-videos
 
 # gRPC
-export GRPC_AI_SERVICE_HOST=localhost
-export GRPC_AI_SERVICE_PORT=50051
+GRPC_AI_SERVICE_HOST=localhost
+GRPC_AI_SERVICE_PORT=50051
 
 # 视频处理
-export TEMP_VIDEO_PATH=/tmp/skiuo
-export VIDEO_WINDOW_SIZE=15
-export VIDEO_WINDOW_STEP=10
+TEMP_VIDEO_PATH=/tmp/skiuo
+VIDEO_WINDOW_SIZE=15  # 窗口大小（秒）
+VIDEO_WINDOW_STEP=10  # 步长（秒）
 ```
+
+**注意**：
+- `.env` 文件应放在项目根目录 `ski/`，不是 `core-service/`
+- `DotenvConfig` 类在应用启动时自动加载
+- 无需手动设置系统环境变量
 
 ### 3. 运行应用
 
@@ -94,6 +121,7 @@ Parameters:
 - aiModel: String (可选，默认 "qwen")
 - analysisMode: String (可选，"FULL" 或 "SLIDING_WINDOW"，默认 "SLIDING_WINDOW")
 - keepVideo: Boolean (可选，默认 false)
+- storageType: String (可选，"minio" | "oss" | "cos"，默认 "cos")
 - duration: Integer (可选，视频时长秒数)
 
 Response: 202 ACCEPTED
@@ -161,7 +189,42 @@ Response: 200 OK
 ]
 ```
 
-### 5. 健康检查
+### 5. 完成会话
+
+**重要**：前端停止录制后必须调用此接口，通知后端完成最终分析。
+
+```http
+POST /api/videos/sessions/{sessionId}/finish
+
+Response: 200 OK
+{
+  "sessionId": 1,
+  "status": "COMPLETED",
+  "message": "Session finished successfully"
+}
+```
+
+**功能**：
+- 等待所有异步 chunk 处理任务完成（防止竞态条件）
+- FULL模式：分析完整视频
+- SLIDING_WINDOW模式：分析剩余未覆盖的窗口
+
+### 6. 获取服务器配置
+
+```http
+GET /api/config
+
+Response: 200 OK
+{
+  "windowSize": 15,
+  "windowStep": 10,
+  "recommendedChunkDuration": 35
+}
+```
+
+前端根据此配置调整 chunk 时长，确保与后端窗口参数匹配。
+
+### 7. 健康检查
 
 ```http
 GET /api/videos/health
@@ -216,15 +279,34 @@ stompClient.connect({}, function(frame) {
 ### 核心组件
 
 - **VideoUploadService**: 处理文件上传和临时存储
-- **VideoProcessingService**: 协调两种分析模式的处理流程
-- **MinioService**: MinIO 操作封装（上传、URL 生成、删除）
+- **VideoProcessingService**: 协调两种分析模式的处理流程，**异步任务追踪**
+- **存储服务层** (工厂模式):
+  - `StorageService` 接口
+  - `MinioService` / `OssService` / `CosService` 实现
+  - `StorageServiceFactory` 根据配置选择
 - **GrpcClientService**: 调用 ai-service 的 gRPC 接口
 - **AnalysisService**: 保存分析结果、WebSocket 推送
-- **CleanupService**: 清理临时文件和 MinIO 对象
+- **CleanupService**: 清理临时文件和存储服务对象
 
-### 异步处理
+### 异步处理与并发控制
 
-使用 `@Async` 注解和 `ThreadPoolTaskExecutor` 实现异步视频处理，不阻塞上传接口响应。
+**异步视频处理**：
+- 使用 `@Async` 注解和 `ThreadPoolTaskExecutor`
+- 上传接口立即返回 202 ACCEPTED
+- 视频处理在后台异步执行
+
+**并发竞态条件防护**：
+- 问题：前端上传最后一个chunk后立即调用`finishSession`，但后端可能还在异步处理
+- 解决：`VideoProcessingService` 追踪所有异步任务
+  ```java
+  // 注册异步任务
+  CompletableFuture<Void> task = processVideoChunk(...);
+  registerTask(sessionId, task);
+
+  // finishSession 等待所有任务完成
+  awaitSessionTasks(sessionId);  // 最多等待5分钟
+  ```
+- 确保 `finishSession` 读取到最新的 session 数据
 
 ### 定时任务
 
@@ -245,10 +327,12 @@ stompClient.connect({}, function(frame) {
 - 检查 ai-service 是否运行在 `localhost:50051`
 - 查看 `application.yml` 中的 gRPC 配置
 
-### MinIO 连接失败
-- 确认 MinIO 运行在 `localhost:9000`
-- 检查访问密钥是否正确
-- 确保 bucket `skiuo-videos` 存在
+### 存储服务连接失败
+- **MinIO**: 确认运行在 `localhost:9000`，bucket已创建
+- **OSS**: 检查 endpoint、accessKey、bucket配置
+- **COS**: 检查 secretId、secretKey、region、bucket配置
+- 查看启动日志中的存储服务初始化信息
+- 确认 `.env` 文件中 `STORAGE_TYPE` 正确
 
 ### 数据库连接失败
 - 确认 PostgreSQL 运行中
@@ -262,11 +346,14 @@ stompClient.connect({}, function(frame) {
 
 ## 开发注意事项
 
-1. **环境变量优先**: 所有配置从环境变量读取
-2. **错误处理完善**: 所有外部调用都有 try-catch
-3. **日志记录**: 关键操作都有日志
-4. **事务管理**: 数据库操作使用 `@Transactional`
-5. **资源清理**: 临时文件和 MinIO 对象按配置清理
+1. **使用 dotenv-java**: `.env` 文件自动加载，放在项目根目录
+2. **多存储服务**: 通过 `STORAGE_TYPE` 切换，工厂模式实现
+3. **错误处理完善**: 所有外部调用都有 try-catch
+4. **日志记录**: 关键操作都有日志
+5. **事务管理**: 数据库操作使用 `@Transactional`
+6. **异步任务追踪**: 防止 finishSession 并发竞态条件
+7. **资源清理**: 临时文件和存储对象按配置清理
+8. **重复分析防护**: `analyzeFinalWindows` 检查窗口覆盖情况
 
 ## 相关文档
 

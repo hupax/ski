@@ -23,6 +23,14 @@ service VideoAnalysisService {
   // Step 4: Concatenate videos (for cross-chunk windows)
   // Joins multiple videos into one
   rpc ConcatVideos(ConcatVideosRequest) returns (ConcatVideosResponse);
+
+  // Step 5: Extract video segment (for master video sliding window)
+  // Extracts a specific time range from video
+  rpc ExtractSegment(ExtractSegmentRequest) returns (ExtractSegmentResponse);
+
+  // Step 6: Get video duration
+  // Returns the duration of a video file
+  rpc GetVideoDuration(GetVideoDurationRequest) returns (GetVideoDurationResponse);
 }
 
 // ========== Process Video Messages ==========
@@ -37,8 +45,16 @@ message ProcessRequest {
 }
 
 message ProcessResponse {
-  repeated string window_paths = 1; // List of sliced window file paths
+  repeated WindowInfo windows = 1;  // List of sliced window information
   string error = 2;                 // Error message if any
+}
+
+// Window information with time range
+message WindowInfo {
+  string path = 1;                  // Local file path
+  float start_time = 2;             // Start time in seconds (relative to video start)
+  float end_time = 3;               // End time in seconds (relative to video start)
+  float duration = 4;               // Actual duration in seconds
 }
 
 // ========== Analyze Video Messages ==========
@@ -83,5 +99,30 @@ message ConcatVideosRequest {
 
 message ConcatVideosResponse {
   string output_path = 1;          // Path to concatenated video
+  string error = 2;                // Error message if any
+}
+
+// ========== Extract Segment Messages ==========
+
+message ExtractSegmentRequest {
+  string video_path = 1;           // Input video file path
+  string output_path = 2;          // Output segment file path
+  float start_time = 3;            // Start time in seconds
+  float end_time = 4;              // End time in seconds
+}
+
+message ExtractSegmentResponse {
+  string output_path = 1;          // Path to extracted segment file
+  string error = 2;                // Error message if any
+}
+
+// ========== Get Video Duration Messages ==========
+
+message GetVideoDurationRequest {
+  string video_path = 1;           // Input video file path
+}
+
+message GetVideoDurationResponse {
+  float duration = 1;              // Video duration in seconds
   string error = 2;                // Error message if any
 }

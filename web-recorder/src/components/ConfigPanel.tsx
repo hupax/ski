@@ -1,14 +1,16 @@
-import { AIModel, AnalysisMode, StorageType } from '../types';
-import type { RecordingConfig } from '../types';
+import { AIModel, AnalysisMode, StorageType, AppMode } from '../types';
+import type { RecordingConfig, AppMode as AppModeType } from '../types';
 import { UI_TEXT } from '../config/constants';
 
 interface ConfigPanelProps {
   config: RecordingConfig;
   onChange: (config: RecordingConfig) => void;
   disabled?: boolean;
+  appMode: AppModeType;
+  onAppModeChange: (mode: AppModeType) => void;
 }
 
-export function ConfigPanel({ config, onChange, disabled = false }: ConfigPanelProps) {
+export function ConfigPanel({ config, onChange, disabled = false, appMode, onAppModeChange }: ConfigPanelProps) {
   const handleAIModelChange = (model: AIModel) => {
     onChange({ ...config, aiModel: model });
   };
@@ -28,6 +30,42 @@ export function ConfigPanel({ config, onChange, disabled = false }: ConfigPanelP
   return (
     <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
       <h2 className="text-xl font-semibold text-gray-800 mb-4">录制配置</h2>
+
+      {/* App Mode Selection */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          运行模式
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => onAppModeChange(AppMode.RECORD)}
+            className={`px-4 py-2 rounded-md font-medium transition-colors ${
+              appMode === AppMode.RECORD
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            } cursor-pointer`}
+          >
+            📹 实时录制
+          </button>
+          <button
+            type="button"
+            onClick={() => onAppModeChange(AppMode.TEST)}
+            className={`px-4 py-2 rounded-md font-medium transition-colors ${
+              appMode === AppMode.TEST
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            } cursor-pointer`}
+          >
+            🧪 测试模式
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-gray-500">
+          {appMode === AppMode.RECORD
+            ? '使用摄像头实时录制视频'
+            : '上传本地chunks文件模拟录制（用于快速测试）'}
+        </p>
+      </div>
 
       {/* AI Model Selection */}
       <div>

@@ -102,7 +102,7 @@ public class VideoUploadService {
      * Create video chunk record
      */
     @Transactional
-    public VideoChunk createVideoChunk(Long sessionId, Integer chunkIndex, String minioPath, Integer duration) {
+    public VideoChunk createVideoChunk(Long sessionId, Integer chunkIndex, String minioPath, Double duration) {
         VideoChunk chunk = VideoChunk.builder()
                 .sessionId(sessionId)
                 .chunkIndex(chunkIndex)

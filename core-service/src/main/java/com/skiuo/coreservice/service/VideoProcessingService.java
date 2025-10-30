@@ -6,10 +6,12 @@ import com.skiuo.coreservice.entity.Session;
 import com.skiuo.coreservice.entity.VideoChunk;
 import com.skiuo.coreservice.exception.VideoProcessingException;
 import com.skiuo.coreservice.repository.VideoChunkRepository;
+import com.skiuo.grpc.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -20,7 +22,7 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 @RequiredArgsConstructor
 public class VideoProcessingService {
-
+    
     private final VideoConfig videoConfig;
     private final GrpcClientService grpcClientService;
     private final StorageServiceFactory storageServiceFactory;
@@ -28,7 +30,9 @@ public class VideoProcessingService {
     private final CleanupService cleanupService;
     private final VideoUploadService videoUploadService;
     private final VideoChunkRepository videoChunkRepository;
-
+    private final com.skiuo.coreservice.repository.SessionRepository sessionRepository;
+    
+    
     /**
      * Process video chunk asynchronously
      *
@@ -37,24 +41,27 @@ public class VideoProcessingService {
      * @param localPath Local file path
      */
     @Async("videoTaskExecutor")
-    public CompletableFuture<Void> processVideoChunk(Session session, VideoChunk chunk, String localPath) {
+    public CompletableFuture<Void> processVideoChunk(Session session, VideoChunk chunk, String localPath, Boolean isLastChunk) {
+        Long sessionId = session.getId();
+        Long chunkId = chunk.getId();
+
         try {
-            log.info("Starting video processing: sessionId={}, chunkId={}, mode={}",
-                    session.getId(), chunk.getId(), session.getAnalysisMode());
+            log.info("Starting video processing: sessionId={}, chunkId={}, mode={}, isLastChunk={}",
+                    sessionId, chunkId, session.getAnalysisMode(), isLastChunk);
 
             // Update session status to ANALYZING
-            videoUploadService.updateSessionStatus(session.getId(), Session.SessionStatus.ANALYZING);
+            videoUploadService.updateSessionStatus(sessionId, Session.SessionStatus.ANALYZING);
 
             if (session.getAnalysisMode() == Session.AnalysisMode.FULL) {
                 // Full analysis mode
                 processFullAnalysisMode(session, chunk, localPath);
             } else {
                 // Sliding window mode
-                processSlidingWindowMode(session, chunk, localPath);
+                processSlidingWindowMode(session, chunk, localPath, isLastChunk);
             }
 
             log.info("Video processing completed: sessionId={}, chunkId={}",
-                    session.getId(), chunk.getId());
+                    sessionId, chunkId);
 
             // Cleanup
             cleanupService.cleanupAfterProcessing(session, chunk, localPath);
@@ -63,268 +70,165 @@ public class VideoProcessingService {
 
         } catch (Exception e) {
             log.error("Video processing failed: sessionId={}, chunkId={}, error={}",
-                    session.getId(), chunk.getId(), e.getMessage());
-            videoUploadService.updateSessionStatus(session.getId(), Session.SessionStatus.FAILED);
+                    sessionId, chunkId, e.getMessage());
+            videoUploadService.updateSessionStatus(sessionId, Session.SessionStatus.FAILED);
             throw new VideoProcessingException("Video processing failed", e);
         }
     }
-
+    
+    
     /**
-     * Full analysis mode: upload original video and analyze once
+     * Full analysis mode: append to master video, analyze at session end
      */
     private void processFullAnalysisMode(Session session, VideoChunk chunk, String localPath) {
-        log.info("Processing in FULL mode: sessionId={}", session.getId());
-
-        // Get storage service based on session's storage type
-        StorageService storageService = storageServiceFactory.getStorageService(session.getStorageType());
-
-        // Step 1: Upload original video to storage
-        String minioPath = buildMinioPath(session.getId(), chunk.getChunkIndex(), "full");
-        storageService.uploadFile(localPath, minioPath);
-        log.info("Uploaded original video to storage: {}", minioPath);
-
-        // Step 2: Generate public URL
-        String videoUrl = storageService.generatePublicUrl(minioPath);
-
-        // Step 3: Analyze video
-        int startOffset = calculateAccumulatedDuration(session, chunk);
-        int endOffset = startOffset + (chunk.getDuration() != null ? chunk.getDuration() : 30);
-
-        String result = grpcClientService.analyzeVideoSync(
-                session.getId().toString(),
-                0, // window index 0 for full analysis
-                videoUrl,
-                session.getAiModel(),
-                "", // no context for full analysis
-                startOffset,
-                endOffset,
-                content -> {
-                    // Stream result to WebSocket
-                    analysisService.sendStreamingResult(session.getId(), 0, content);
-                }
-        );
-
-        // Step 4: Save analysis result
-        analysisService.saveAnalysisRecord(session.getId(), chunk.getId(), 0, result, startOffset, endOffset, minioPath);
-
-        log.info("Full analysis completed: sessionId={}, result length={}",
-                session.getId(), result.length());
+        log.info("Processing in FULL mode (NEW): sessionId={}", session.getId());
+        
+        // FULL mode: just append to master video
+        // Actual analysis happens when session ends (finishSession)
+        appendToMasterVideo(session, localPath, chunk.getDuration());
+        
+        log.info("FULL mode: appended chunk to master video, total length={}s",
+                session.getCurrentVideoLength());
     }
-
+    
+    
     /**
-     * Sliding window mode: slice video and analyze each window with context
+     * Analyze the complete master video in FULL mode
+     *
+     * @param session Session entity
      */
-    private void processSlidingWindowMode(Session session, VideoChunk chunk, String localPath) {
-        log.info("Processing in SLIDING_WINDOW mode: sessionId={}", session.getId());
-
-        // Get storage service based on session's storage type
+    private void analyzeFullMasterVideo(Session session) {
+        log.info("Analyzing full master video for session {}, length={}s",
+                session.getId(), session.getCurrentVideoLength());
+        
         StorageService storageService = storageServiceFactory.getStorageService(session.getStorageType());
-
-        // Calculate base time offset BEFORE any tail processing
-        int baseOffset = calculateAccumulatedDuration(session, chunk);
-
-        // Step 0: Check if we need to concatenate with previous chunk's tail
-        String videoToProcess = localPath;
-        boolean hasTailConcat = false;
-
-        if (session.getLastChunkTailPath() != null && chunk.getChunkIndex() > 0) {
-            log.info("Found previous chunk tail, concatenating: path={}, duration={}s",
-                    session.getLastChunkTailPath(), session.getLastChunkTailDuration());
-
-            try {
-                // Download tail from storage to local
-                String tailLocalPath = videoConfig.getTempPath() + "/" + session.getId() +
-                        "/tail_" + (chunk.getChunkIndex() - 1) + ".webm";
-                downloadFromStorage(session.getLastChunkTailPath(), tailLocalPath, storageService);
-
-                // Concatenate: tail + current_chunk
-                String concatPath = videoConfig.getTempPath() + "/" + session.getId() +
-                        "/concat_" + chunk.getChunkIndex() + ".webm";
-                videoToProcess = grpcClientService.concatVideos(
-                        List.of(tailLocalPath, localPath),
-                        concatPath
-                );
-
-                // Adjust baseOffset (subtract tail duration since it overlaps with previous chunk)
-                baseOffset -= session.getLastChunkTailDuration();
-                hasTailConcat = true;
-
-                log.info("Concatenated tail + chunk: output={}, adjusted baseOffset={}s",
-                        videoToProcess, baseOffset);
-
-                // Cleanup local tail file
-                cleanupService.deleteLocalFile(tailLocalPath);
-            } catch (Exception e) {
-                log.error("Failed to concatenate with tail, proceeding without it: {}", e.getMessage());
-                videoToProcess = localPath; // Fallback to original
-                baseOffset = calculateAccumulatedDuration(session, chunk); // Reset offset
-            }
-        }
-
-        // Step 1: Call ProcessVideo to slice video
-        List<String> windowPaths = grpcClientService.processVideo(
-                session.getId().toString(),
-                chunk.getId(),
-                videoToProcess,
-                "sliding_window",
-                videoConfig.getWindowSize(),
-                videoConfig.getWindowStep()
-        );
-
-        log.info("Video sliced into {} windows", windowPaths.size());
-
-        // Step 2: Get context from last window and calculate global window index
-        String previousContext = "";
-        int globalWindowStartIndex = (int) analysisService.countAnalyzedWindows(session.getId());
-
-        // Get context from the last analyzed window
-        if (globalWindowStartIndex > 0) {
-            AnalysisRecord lastRecord = analysisService.getLastAnalysisRecord(session.getId());
-            if (lastRecord != null && lastRecord.getContent() != null) {
-                previousContext = summarizeForContext(lastRecord.getContent());
-                log.info("Retrieved context from previous window: windowIndex={}, contextLength={}",
-                        lastRecord.getWindowIndex(), previousContext.length());
-            }
-        }
-
-        // Note: baseOffset was already calculated and adjusted for tail concatenation above (line 124-149)
-        log.info("Using base time offset for chunk {}: {} seconds", chunk.getChunkIndex(), baseOffset);
-
-        // Step 3: Upload each window to storage and analyze
-        for (int i = 0; i < windowPaths.size(); i++) {
-            String windowPath = windowPaths.get(i);
-            int globalWindowIndex = globalWindowStartIndex + i;
-
-            // Upload window to storage
-            String minioPath = buildMinioPath(session.getId(), chunk.getChunkIndex(), "window_" + i);
-            storageService.uploadFile(windowPath, minioPath);
-
-            // Generate public URL
-            String videoUrl = storageService.generatePublicUrl(minioPath);
-            log.info("🎥 [URL-TRACK] Generated public URL for session={}, chunk={}, window={}, globalIndex={}: {}",
-                    session.getId(), chunk.getChunkIndex(), i, globalWindowIndex, videoUrl);
-
-            // Calculate time offsets for this window (relative to session start)
-            int startOffset = baseOffset + (i * videoConfig.getWindowStep());
-            int endOffset = startOffset + videoConfig.getWindowSize();
-
-            // Analyze window with context from previous window
-            final String contextForAnalysis = previousContext;
+        
+        try {
+            // 1. Upload master video to storage
+            String storagePath = "sessions/" + session.getId() + "/full_video.webm";
+            storageService.uploadFile(session.getMasterVideoPath(), storagePath);
+            log.info("Uploaded master video to storage: {}", storagePath);
+            
+            // 2. Generate public URL
+            String videoUrl = storageService.generatePublicUrl(storagePath);
+            log.info("🎥 Generated URL for full video: {}", videoUrl);
+            
+            // 3. Analyze complete video
             String result = grpcClientService.analyzeVideoSync(
                     session.getId().toString(),
-                    globalWindowIndex,
+                    0,  // window index 0 for full analysis
                     videoUrl,
                     session.getAiModel(),
-                    contextForAnalysis,
-                    startOffset,
-                    endOffset,
-                    content -> {
-                        // Stream result to WebSocket
-                        analysisService.sendStreamingResult(session.getId(), globalWindowIndex, content);
-                    }
+                    "",  // no context for full analysis
+                    0.0,
+                    session.getCurrentVideoLength(),
+                    content -> analysisService.sendStreamingResult(session.getId(), 0, content)
             );
-
-            // Save analysis result with global window index
-            analysisService.saveAnalysisRecord(session.getId(), chunk.getId(), globalWindowIndex, result, startOffset, endOffset, minioPath);
-
-            // Use this result as context for next window
-            previousContext = summarizeForContext(result);
-
-            log.info("Window {} (global index) analyzed: length={}", globalWindowIndex, result.length());
-
-            // Delete temporary window file
-            cleanupService.deleteLocalFile(windowPath);
-
-            // Delete storage object if not keeping videos
+            
+            // 4. Save analysis result
+            analysisService.saveAnalysisRecord(
+                    session.getId(),
+                    null,
+                    0,
+                    result,
+                    0.0,
+                    session.getCurrentVideoLength(),
+                    storagePath
+            );
+            
+            log.info("Full video analysis completed: length={}", result.length());
+            
+            // 5. Delete from storage if not keeping videos
             if (!session.getKeepVideo()) {
-                storageService.deleteObject(minioPath);
+                storageService.deleteObject(storagePath);
+                log.info("Deleted full video from storage (keepVideo=false)");
             }
-        }
-
-        log.info("Sliding window analysis completed: sessionId={}, windows={}, globalIndexRange={}-{}",
-                session.getId(), windowPaths.size(), globalWindowStartIndex, globalWindowStartIndex + windowPaths.size() - 1);
-
-        // Step 4: Extract and save tail for next chunk (for cross-chunk windows)
-        try {
-            // Calculate tail duration: overlap between chunks
-            int tailDuration = videoConfig.getWindowSize() - videoConfig.getWindowStep();
-
-            // Extract tail from ORIGINAL chunk (not the concatenated one)
-            String tailLocalPath = videoConfig.getTempPath() + "/" + session.getId() +
-                    "/tail_" + chunk.getChunkIndex() + ".webm";
-            grpcClientService.extractTail(localPath, tailLocalPath, tailDuration);
-
-            // Upload tail to storage
-            String tailStoragePath = "sessions/" + session.getId() + "/tail_" +
-                    chunk.getChunkIndex() + "_" + System.currentTimeMillis() + ".webm";
-            storageService.uploadFile(tailLocalPath, tailStoragePath);
-
-            // Delete previous tail from storage if exists
-            if (session.getLastChunkTailPath() != null) {
-                try {
-                    storageService.deleteObject(session.getLastChunkTailPath());
-                    log.info("Deleted previous tail: {}", session.getLastChunkTailPath());
-                } catch (Exception e) {
-                    log.warn("Failed to delete previous tail: {}", e.getMessage());
-                }
-            }
-
-            // Update session with new tail info
-            session.setLastChunkTailPath(tailStoragePath);
-            session.setLastChunkTailDuration(tailDuration);
-            videoUploadService.updateSessionStatus(session.getId(), session.getStatus()); // Trigger save
-
-            log.info("Saved chunk tail: duration={}s, path={}", tailDuration, tailStoragePath);
-
-            // Cleanup local tail file
-            cleanupService.deleteLocalFile(tailLocalPath);
-
+            
         } catch (Exception e) {
-            log.error("Failed to extract/save tail, continuing without it: {}", e.getMessage());
-            // Not critical, continue processing
-        }
-
-        // Cleanup concatenated file if created
-        if (hasTailConcat && !videoToProcess.equals(localPath)) {
-            cleanupService.deleteLocalFile(videoToProcess);
+            log.error("Failed to analyze full master video: {}", e.getMessage(), e);
+            throw new VideoProcessingException("Failed to analyze full master video", e);
         }
     }
-
+    
     /**
-     * Calculate start time offset for this chunk relative to session start
-     * Based on accumulated duration of all previous chunks
+     * Sliding window mode: append to master video and trigger sliding window analysis
      */
-    private int calculateAccumulatedDuration(Session session, VideoChunk currentChunk) {
-        // Get all chunks before the current one
-        List<VideoChunk> previousChunks = videoChunkRepository.findBySessionIdOrderByChunkIndexAsc(session.getId())
-                .stream()
-                .filter(c -> c.getChunkIndex() < currentChunk.getChunkIndex())
-                .toList();
+    private void processSlidingWindowMode(Session session, VideoChunk chunk, String localPath, Boolean isLastChunk) {
+        log.info("Processing in SLIDING_WINDOW mode (NEW): sessionId={}, isLastChunk={}", session.getId(), isLastChunk);
 
-        // Sum up durations of all previous chunks
-        int accumulatedSeconds = 0;
-        for (VideoChunk chunk : previousChunks) {
-            if (chunk.getDuration() != null && chunk.getDuration() > 0) {
-                accumulatedSeconds += chunk.getDuration();
+        // Step 1: Append chunk to master video
+        appendToMasterVideo(session, localPath, chunk.getDuration());
+
+        // Step 2: Check trigger condition and analyze windows
+        checkAndAnalyzeWindows(session, isLastChunk);
+
+        log.info("Sliding window mode processing completed: sessionId={}, masterLength={}s",
+                session.getId(), session.getCurrentVideoLength());
+    }
+    
+    /**
+     * Append chunk to master video
+     *
+     * @param session       Session entity
+     * @param chunkPath     Local path to chunk file
+     * @param chunkDuration Duration of chunk in seconds
+     */
+    private void appendToMasterVideo(Session session, String chunkPath, Double chunkDuration) {
+        try {
+            if (session.getMasterVideoPath() == null) {
+                // First chunk: copy as master video
+                String masterPath = videoConfig.getTempPath() + "/" + session.getId() + "/master_video.webm";
+                java.nio.file.Path sessionDir = java.nio.file.Paths.get(videoConfig.getTempPath(), session.getId().toString());
+                if (!java.nio.file.Files.exists(sessionDir)) {
+                    java.nio.file.Files.createDirectories(sessionDir);
+                }
+                
+                java.nio.file.Files.copy(
+                        java.nio.file.Paths.get(chunkPath),
+                        java.nio.file.Paths.get(masterPath),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING
+                );
+                
+                session.setMasterVideoPath(masterPath);
+
+                // Get actual video duration from FFmpeg
+                Double actualDuration = grpcClientService.getVideoDuration(masterPath);
+                session.setCurrentVideoLength(actualDuration);
+                session.setLastWindowStartTime((double) -videoConfig.getWindowStep());
+
+                log.info("Created master video: path={}, length={}s (actual from FFmpeg)", masterPath, actualDuration);
             } else {
-                // If duration not set, assume 30 seconds (default chunk duration)
-                accumulatedSeconds += 30;
-                log.warn("Chunk {} has no duration, assuming 30 seconds", chunk.getId());
+                // Subsequent chunks: concatenate to master video
+                String tempOutput = videoConfig.getTempPath() + "/" + session.getId() + "/master_temp.webm";
+                
+                grpcClientService.concatVideos(
+                        List.of(session.getMasterVideoPath(), chunkPath),
+                        tempOutput
+                );
+                
+                // Replace old master video
+                java.nio.file.Files.delete(java.nio.file.Paths.get(session.getMasterVideoPath()));
+                java.nio.file.Files.move(
+                        java.nio.file.Paths.get(tempOutput),
+                        java.nio.file.Paths.get(session.getMasterVideoPath()),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING
+                );
+
+                // Get actual video duration from FFmpeg after concatenation
+                Double actualDuration = grpcClientService.getVideoDuration(session.getMasterVideoPath());
+                session.setCurrentVideoLength(actualDuration);
+
+                log.info("Appended to master video: new length={}s (actual from FFmpeg)", actualDuration);
             }
+            
+            sessionRepository.save(session);
+            
+        } catch (Exception e) {
+            log.error("Failed to append to master video: {}", e.getMessage(), e);
+            throw new VideoProcessingException("Failed to append to master video", e);
         }
-
-        return accumulatedSeconds;
     }
-
-    /**
-     * Build MinIO object path
-     */
-    private String buildMinioPath(Long sessionId, Integer chunkIndex, String suffix) {
-        long timestamp = System.currentTimeMillis();
-        return String.format("sessions/%d/chunks/%d_%s_%d.webm",
-                sessionId, timestamp, suffix, chunkIndex);
-    }
-
+    
     /**
      * Summarize result for use as context in next window
      * (Simple version: just truncate to last 500 chars)
@@ -335,47 +239,176 @@ public class VideoProcessingService {
         }
         return "..." + result.substring(result.length() - 500);
     }
-
+    
     /**
-     * Download file from storage to local path
-     * This is a helper method since StorageService doesn't have a direct download method
+     * Check and analyze windows based on sliding window trigger logic
      *
-     * @param storagePath   Path in storage
-     * @param localPath     Local file path to save
-     * @param storageService Storage service instance
+     * @param session Session entity
+     * @param isLastChunk Whether this is the last chunk
      */
-    private void downloadFromStorage(String storagePath, String localPath, StorageService storageService) {
-        try {
-            // Generate a temporary URL and download using it
-            // For MinIO/OSS/COS, we can use presigned URLs
-            String url = storageService.generatePublicUrl(storagePath);
+    private void checkAndAnalyzeWindows(Session session, Boolean isLastChunk) {
+        log.info("Checking window analysis trigger for session {}: masterLength={}s, lastWindowStart={}s, isLastChunk={}",
+                session.getId(), session.getCurrentVideoLength(), session.getLastWindowStartTime(), isLastChunk);
 
-            // Use Java HTTP client to download
-            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
-                    .uri(java.net.URI.create(url))
-                    .GET()
-                    .build();
+        StorageService storageService = storageServiceFactory.getStorageService(session.getStorageType());
+        Double windowSize = (double) videoConfig.getWindowSize();
+        Double windowStep = (double) videoConfig.getWindowStep();
+        Double minWindowSize = 5.0; // Minimum 5 seconds for a window
 
-            java.net.http.HttpResponse<byte[]> response = client.send(request,
-                    java.net.http.HttpResponse.BodyHandlers.ofByteArray());
+        // Get current global window index
+        int globalWindowIndex = (int) analysisService.countAnalyzedWindows(session.getId());
 
-            if (response.statusCode() != 200) {
-                throw new VideoProcessingException("Failed to download from storage: HTTP " + response.statusCode());
+        // Get context from last window
+        String previousContext = "";
+        if (globalWindowIndex > 0) {
+            AnalysisRecord lastRecord = analysisService.getLastAnalysisRecord(session.getId());
+            if (lastRecord != null && lastRecord.getContent() != null) {
+                previousContext = summarizeForContext(lastRecord.getContent());
+            }
+        }
+
+        // Loop: check trigger condition and analyze windows
+        while (true) {
+            Double nextWindowStart = session.getLastWindowStartTime() + windowStep;
+            Double nextWindowEnd = nextWindowStart + windowSize;
+
+            // Normal trigger condition: currentLength >= nextWindowEnd
+            boolean normalTrigger = session.getCurrentVideoLength() >= nextWindowEnd;
+
+            // Last chunk trigger condition: isLastChunk=true and enough remaining video
+            Double remainingLength = session.getCurrentVideoLength() - nextWindowStart;
+            boolean lastChunkTrigger = isLastChunk && remainingLength >= minWindowSize;
+
+            if (!normalTrigger && !lastChunkTrigger) {
+                if (isLastChunk) {
+                    log.info("Last chunk: not enough remaining video for final window: remaining={}s < minWindowSize={}s",
+                            remainingLength, minWindowSize);
+                } else {
+                    log.info("Not enough video length for next window: current={}s, needed={}s",
+                            session.getCurrentVideoLength(), nextWindowEnd);
+                }
+                break;
             }
 
-            // Ensure parent directory exists
-            java.nio.file.Path path = java.nio.file.Paths.get(localPath);
-            java.nio.file.Files.createDirectories(path.getParent());
+            // IMPORTANT: Clamp window end to video length to avoid exceeding actual duration
+            Double clampedWindowEnd = Math.min(nextWindowEnd, session.getCurrentVideoLength());
 
-            // Write to local file
-            java.nio.file.Files.write(path, response.body());
+            log.info("Trigger condition met (normalTrigger={}, lastChunkTrigger={}): analyzing window {}, range=[{}, {}]s (clamped from {}s), currentVideoLength={}s",
+                    normalTrigger, lastChunkTrigger, globalWindowIndex, nextWindowStart, clampedWindowEnd, nextWindowEnd,
+                    session.getCurrentVideoLength());
 
-            log.info("Downloaded from storage: {} -> {}", storagePath, localPath);
+            // Extract and analyze window
+            String result = extractAndAnalyzeWindow(
+                    session,
+                    globalWindowIndex,
+                    nextWindowStart,
+                    clampedWindowEnd,  // Use clamped value
+                    previousContext,
+                    storageService
+            );
 
+            // Update session state
+            session.setLastWindowStartTime(nextWindowStart);
+            sessionRepository.save(session);
+
+            // Update context and index for next iteration
+            previousContext = summarizeForContext(result);
+            globalWindowIndex++;
+
+            // If this was the last chunk and we just analyzed the final window, break
+            if (lastChunkTrigger && !normalTrigger) {
+                log.info("Last chunk: final window analyzed, stopping");
+                break;
+            }
+        }
+
+        // Mark session as completed if this is the last chunk
+        if (isLastChunk) {
+            videoUploadService.updateSessionStatus(session.getId(), Session.SessionStatus.COMPLETED);
+            log.info("Last chunk processed, session {} marked as COMPLETED", session.getId());
+        }
+
+        log.info("Window analysis batch completed for session {}", session.getId());
+    }
+    
+    /**
+     * Extract and analyze a single window from master video
+     *
+     * @param session           Session entity
+     * @param globalWindowIndex Global window index
+     * @param startTime         Start time in seconds
+     * @param endTime           End time in seconds
+     * @param context           Context from previous window
+     * @param storageService    Storage service instance
+     * @return Analysis result
+     */
+    private String extractAndAnalyzeWindow(
+            Session session,
+            int globalWindowIndex,
+            Double startTime,
+            Double endTime,
+            String context,
+            StorageService storageService) {
+        
+        log.info("Extracting and analyzing window {}: [{}, {}]s", globalWindowIndex, startTime, endTime);
+        
+        try {
+            // 1. Extract window segment from master video
+            String windowPath = videoConfig.getTempPath() + "/" + session.getId() +
+                    "/window_" + globalWindowIndex + ".webm";
+            grpcClientService.extractSegment(
+                    session.getMasterVideoPath(),
+                    windowPath,
+                    startTime,
+                    endTime
+            );
+            
+            // 2. Upload to storage service
+            String storagePath = String.format("sessions/%d/windows/w%d_%.0f-%.0fs.webm",
+                    session.getId(), globalWindowIndex, startTime, endTime);
+            storageService.uploadFile(windowPath, storagePath);
+            
+            // 3. Generate public URL
+            String videoUrl = storageService.generatePublicUrl(storagePath);
+            log.info("🎥 Generated URL for window {}: {}", globalWindowIndex, videoUrl);
+            
+            // 4. Call AI analysis
+            String result = grpcClientService.analyzeVideoSync(
+                    session.getId().toString(),
+                    globalWindowIndex,
+                    videoUrl,
+                    session.getAiModel(),
+                    context,
+                    startTime,
+                    endTime,
+                    content -> analysisService.sendStreamingResult(session.getId(), globalWindowIndex, content)
+            );
+            
+            // 5. Save analysis result
+            analysisService.saveAnalysisRecord(
+                    session.getId(),
+                    null,  // chunkId not important anymore
+                    globalWindowIndex,
+                    result,
+                    startTime,
+                    endTime,
+                    storagePath
+            );
+            
+            // 6. Cleanup local window file
+            cleanupService.deleteLocalFile(windowPath);
+            
+            // 7. Delete from storage if not keeping videos
+            if (!session.getKeepVideo()) {
+                storageService.deleteObject(storagePath);
+            }
+            
+            log.info("Window {} analysis completed, result length={}", globalWindowIndex, result.length());
+            return result;
+            
         } catch (Exception e) {
-            log.error("Failed to download from storage: {}", e.getMessage());
-            throw new VideoProcessingException("Failed to download from storage", e);
+            log.error("Failed to extract/analyze window {}: {}", globalWindowIndex, e.getMessage(), e);
+            throw new VideoProcessingException("Failed to extract/analyze window", e);
         }
     }
 }
