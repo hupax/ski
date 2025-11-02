@@ -14,7 +14,8 @@ class VideoAnalyzer(ABC):
             video_url: str,
             context: str = "",
             session_id: str = "",
-            window_index: int = 0
+            window_index: int = 0,
+            analysis_mode: str = "sliding_window"
     ) -> AsyncGenerator[str, None]:
         """
         Analyze video and yield results as stream
@@ -24,6 +25,7 @@ class VideoAnalyzer(ABC):
             context: Previous window analysis result for context
             session_id: Session ID for logging
             window_index: Window index for logging
+            analysis_mode: Analysis mode ("full" or "sliding_window")
 
         Yields:
             Analysis result tokens (streaming)

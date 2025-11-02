@@ -191,15 +191,16 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
     if (nextIndex < allChunks.length) {
       setState(TestState.WAITING);
 
-      // Simulate real recording: wait chunkDuration seconds before next upload
-      startCountdown(chunkDuration, () => {
+      // Test mode: fixed 10s interval between chunks
+      const testInterval = 10; // seconds
+      startCountdown(testInterval, () => {
         // Use ref to call the latest version of uploadNextChunk
         uploadNextChunkRef.current?.();
       });
     } else {
       setState(TestState.COMPLETED);
     }
-  }, [uploadChunk, chunkDuration, startCountdown]);
+  }, [uploadChunk, startCountdown]);
 
   // Store latest uploadNextChunk in ref
   useEffect(() => {
@@ -431,7 +432,7 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
             <li>运行 ai-service/test_video_splitter.py 生成 chunk 文件</li>
             <li>选择生成的 chunk_*.webm 文件（可多选）</li>
             <li>点击"开始测试"</li>
-            <li>系统会按顺序上传 chunks，每个间隔 {chunkDuration} 秒（模拟真实录制）</li>
+            <li>系统会按顺序上传 chunks，每个间隔 10 秒</li>
             <li>实时查看右侧的分析结果</li>
           </ol>
         </div>

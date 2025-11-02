@@ -67,6 +67,7 @@ message AnalysisRequest {
   string context = 5;              // Previous window result summary
   int32 start_offset = 6;          // Start time offset in seconds
   int32 end_offset = 7;            // End time offset in seconds
+  string analysis_mode = 8;        // "full" or "sliding_window" - determines prompt selection
 }
 
 message AnalysisResponse {

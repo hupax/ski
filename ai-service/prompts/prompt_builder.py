@@ -27,14 +27,12 @@ class PromptBuilder:
 
     def build_first_window_prompt(
             self,
-            duration: int = 15,
             include_scenario_hint: bool = True
     ) -> str:
         """
         Build prompt for the first window (no context)
 
         Args:
-            duration: Window duration in seconds
             include_scenario_hint: Whether to include scenario-specific hints
 
         Returns:
@@ -57,7 +55,6 @@ class PromptBuilder:
             scenario_hint = self._get_scenario_enhancement_zh()
 
         prompt = template.format(
-            duration=duration,
             system_role=system_role,
             core_requirements=core_req,
             focus_points=focus + scenario_hint
@@ -68,8 +65,6 @@ class PromptBuilder:
     def build_subsequent_window_prompt(
             self,
             context: str,
-            duration: int = 15,
-            overlap: int = 5,
             include_scenario_hint: bool = True
     ) -> str:
         """
@@ -77,8 +72,6 @@ class PromptBuilder:
 
         Args:
             context: Previous analysis result
-            duration: Window duration in seconds
-            overlap: Overlap duration with previous window in seconds
             include_scenario_hint: Whether to include scenario-specific hints
 
         Returns:
@@ -101,8 +94,6 @@ class PromptBuilder:
             scenario_hint = self._get_scenario_enhancement_zh()
 
         prompt = template.format(
-            duration=duration,
-            overlap=overlap,
             context=context,
             system_role=system_role,
             core_requirements=core_req,
@@ -113,14 +104,12 @@ class PromptBuilder:
 
     def build_full_video_prompt(
             self,
-            duration: int = 30,
             include_scenario_hint: bool = True
     ) -> str:
         """
         Build prompt for full video analysis
 
         Args:
-            duration: Total video duration in seconds
             include_scenario_hint: Whether to include scenario-specific hints
 
         Returns:
@@ -143,7 +132,6 @@ class PromptBuilder:
             scenario_hint = self._get_scenario_enhancement_zh()
 
         prompt = template.format(
-            duration=duration,
             system_role=system_role,
             core_requirements=core_req,
             focus_points=focus + scenario_hint

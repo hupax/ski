@@ -137,10 +137,9 @@ class VideoAnalysisServicer(video_analysis_pb2_grpc.VideoAnalysisServiceServicer
             video_url = request.video_url
             ai_model = request.ai_model
             context_text = request.context
-            start_offset = request.start_offset
-            end_offset = request.end_offset
+            analysis_mode = request.analysis_mode or "sliding_window"  # Default to sliding_window if not set
 
-            logger.info(f"AnalyzeVideo called: session={session_id}, window={window_index}, model={ai_model}")
+            logger.info(f"AnalyzeVideo called: session={session_id}, window={window_index}, model={ai_model}, mode={analysis_mode}")
             logger.info(f"📥 [URL-TRACK] Received from core-service: session={session_id}, window={window_index}, videoUrl={video_url}")
 
             # Get analyzer
@@ -177,7 +176,8 @@ class VideoAnalysisServicer(video_analysis_pb2_grpc.VideoAnalysisServiceServicer
                                     video_url=video_url,
                                     context=context_text,
                                     session_id=session_id,
-                                    window_index=window_index
+                                    window_index=window_index,
+                                    analysis_mode=analysis_mode
                             ):
                                 chunk_count += 1
                                 response = video_analysis_pb2.AnalysisResponse(

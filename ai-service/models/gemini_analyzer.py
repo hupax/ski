@@ -38,7 +38,8 @@ class GeminiAnalyzer(VideoAnalyzer):
             video_url: str,
             context: str = "",
             session_id: str = "",
-            window_index: int = 0
+            window_index: int = 0,
+            analysis_mode: str = "sliding_window"
     ) -> AsyncGenerator[str, None]:
         """
         Analyze video using Gemini API
@@ -48,27 +49,31 @@ class GeminiAnalyzer(VideoAnalyzer):
             context: Previous analysis for context
             session_id: Session ID
             window_index: Window index
+            analysis_mode: Analysis mode ("full" or "sliding_window")
 
         Yields:
             Analysis result tokens
         """
         try:
-            logger.info(f"Analyzing video with Gemini: session={session_id}, window={window_index}")
+            logger.info(f"Analyzing video with Gemini: session={session_id}, window={window_index}, mode={analysis_mode}")
 
-            # Build prompt using PromptBuilder
-            if context:
-                # Subsequent window with context
+            # Build prompt using PromptBuilder based on analysis mode
+            if analysis_mode == "full":
+                # Full video analysis - use dedicated full video prompt
+                prompt = self.prompt_builder.build_full_video_prompt(
+                    include_scenario_hint=Config.PROMPT_INCLUDE_SCENARIO_HINT
+                )
+                logger.debug("Built full video analysis prompt")
+            elif context:
+                # Subsequent window with context (sliding window mode)
                 prompt = self.prompt_builder.build_subsequent_window_prompt(
                     context=context,
-                    duration=Config.WINDOW_SIZE,
-                    overlap=Config.WINDOW_SIZE - Config.WINDOW_STEP,
                     include_scenario_hint=Config.PROMPT_INCLUDE_SCENARIO_HINT
                 )
                 logger.debug(f"Built subsequent window prompt with context length: {len(context)}")
             else:
-                # First window
+                # First window (sliding window mode)
                 prompt = self.prompt_builder.build_first_window_prompt(
-                    duration=Config.WINDOW_SIZE,
                     include_scenario_hint=Config.PROMPT_INCLUDE_SCENARIO_HINT
                 )
                 logger.debug("Built first window prompt")

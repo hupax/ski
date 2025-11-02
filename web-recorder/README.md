@@ -18,8 +18,8 @@
 - 获取浏览器摄像头权限
 - MediaRecorder API 录制 WebM 格式视频
 - 动态 chunk 时长（从服务器获取推荐配置）
-- 支持暂停/恢复，精确跟踪录制时长
-- 停止录制后等待最后一个chunk上传完成，再通知后端
+- 支持暂停/恢复，精确跟踪录制时长（排除暂停时间）
+- 停止录制时标记最后一个chunk为 `isLastChunk=true`
 
 ### 2. 测试模式
 - 上传本地预切分的chunk文件
@@ -31,7 +31,7 @@
 - HTTP 上传视频到 core-service
 - 实时获取会话状态
 - 查询历史分析记录
-- 完成会话通知（`finishSession`）
+- 最后一个chunk自动标记 `isLastChunk=true`
 
 ### 4. WebSocket 实时推送
 - STOMP 协议连接
@@ -139,7 +139,9 @@ Content-Type: multipart/form-data
 - aiModel: "qwen" | "gemini"
 - analysisMode: "FULL" | "SLIDING_WINDOW"
 - keepVideo: boolean
-- duration: number (可选，秒数)
+- storageType: "minio" | "oss" | "cos"
+- duration: number (可选，秒数，支持小数)
+- isLastChunk: boolean (可选，默认 false，标记最后一个chunk)
 
 返回:
 {
@@ -167,20 +169,6 @@ GET /api/videos/sessions/{sessionId}
   "analyzedChunks": 3
 }
 ```
-
-#### 完成会话
-```http
-POST /api/videos/sessions/{sessionId}/finish
-
-返回:
-{
-  "sessionId": 123,
-  "status": "COMPLETED",
-  "message": "Session finished successfully"
-}
-```
-
-**重要**：前端停止录制后必须调用此接口，等待最后一个chunk上传完成后调用。
 
 #### 获取服务器配置
 ```http
@@ -239,7 +227,7 @@ python3.12 test_video_splitter.py /path/to/video.mp4 output_dir/ --chunk-duratio
 3. 配置 AI 模型、分析模式、存储服务等参数
 4. 点击"开始测试"
 5. 系统会按配置的时间间隔逐个上传chunk，模拟真实录制
-6. 上传完成后自动调用 `finishSession`
+6. 最后一个chunk自动标记 `isLastChunk=true`
 
 **优势**：
 - 无需摄像头，可重复测试

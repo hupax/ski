@@ -37,7 +37,8 @@ class QwenAnalyzer(VideoAnalyzer):
             video_url: str,
             context: str = "",
             session_id: str = "",
-            window_index: int = 0
+            window_index: int = 0,
+            analysis_mode: str = "sliding_window"
     ) -> AsyncGenerator[str, None]:
         """
         Analyze video using Qwen API
@@ -47,29 +48,33 @@ class QwenAnalyzer(VideoAnalyzer):
             context: Previous analysis for context
             session_id: Session ID
             window_index: Window index
+            analysis_mode: Analysis mode ("full" or "sliding_window")
 
         Yields:
             Analysis result tokens
         """
         try:
-            logger.info(f"Analyzing video with Qwen: session={session_id}, window={window_index}")
+            logger.info(f"Analyzing video with Qwen: session={session_id}, window={window_index}, mode={analysis_mode}")
             logger.info(
                 f"🤖 [URL-TRACK] Sending to Qwen API: session={session_id}, window={window_index}, videoUrl={video_url}")
 
-            # Build prompt using PromptBuilder
-            if context:
-                # Subsequent window with context
+            # Build prompt using PromptBuilder based on analysis mode
+            if analysis_mode == "full":
+                # Full video analysis - use dedicated full video prompt
+                prompt = self.prompt_builder.build_full_video_prompt(
+                    include_scenario_hint=Config.PROMPT_INCLUDE_SCENARIO_HINT
+                )
+                logger.debug("Built full video analysis prompt")
+            elif context:
+                # Subsequent window with context (sliding window mode)
                 prompt = self.prompt_builder.build_subsequent_window_prompt(
                     context=context,
-                    duration=Config.WINDOW_SIZE,
-                    overlap=Config.WINDOW_SIZE - Config.WINDOW_STEP,
                     include_scenario_hint=Config.PROMPT_INCLUDE_SCENARIO_HINT
                 )
                 logger.debug(f"Built subsequent window prompt with context length: {len(context)}")
             else:
-                # First window
+                # First window (sliding window mode)
                 prompt = self.prompt_builder.build_first_window_prompt(
-                    duration=Config.WINDOW_SIZE,
                     include_scenario_hint=Config.PROMPT_INCLUDE_SCENARIO_HINT
                 )
                 logger.debug("Built first window prompt")
@@ -99,12 +104,28 @@ class QwenAnalyzer(VideoAnalyzer):
             for response in responses:
                 if response.status_code == 200:
                     # DashScope returns complete text each time, extract only new part
-                    full_content = response.output.choices[0].message.content[0]['text']
-                    new_content = full_content[previous_length:]
-                    previous_length = len(full_content)
+                    try:
+                        # Debug: log response structure
+                        content = response.output.choices[0].message.content
+                        logger.debug(f"Response content type: {type(content)}, content: {content}")
 
-                    if new_content:
-                        yield new_content
+                        # Handle different response formats
+                        if isinstance(content, list):
+                            full_content = content[0]['text']
+                        elif isinstance(content, str):
+                            full_content = content
+                        else:
+                            logger.error(f"Unexpected content type: {type(content)}, content: {content}")
+                            raise AIServiceError(f"Unexpected response format from Qwen API")
+
+                        new_content = full_content[previous_length:]
+                        previous_length = len(full_content)
+
+                        if new_content:
+                            yield new_content
+                    except (KeyError, IndexError, TypeError) as e:
+                        logger.error(f"Failed to parse Qwen response: {e}, response: {response}")
+                        raise AIServiceError(f"Failed to parse Qwen response: {e}")
                 else:
                     error_msg = f"DashScope API error: code={response.code}, message={response.message}"
                     logger.error(error_msg)

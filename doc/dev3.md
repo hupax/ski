@@ -172,14 +172,20 @@
 
 ```
 web-recorder:
-  录制完成(如10分钟) → 上传完整视频
+  录制中: 每35秒上传一个chunk (isLastChunk=false)
+  停止录制: 最后一个chunk标记 isLastChunk=true
 
-core-service:
-  接收视频 → 上传存储服务 → 生成公网URL
-  → gRPC调用ai-service(video_url, mode="full")
-  → 接收流式结果 → 保存数据库 → WebSocket推送前端
-  → keep_video=false: 删除存储服务中的文件
-  → keep_video=true: 保留存储服务中的文件
+core-service (每个chunk):
+  接收chunk → 拼接到master video
+  → 使用GetVideoDuration获取实际视频长度
+  → 如果 isLastChunk=false: 继续等待
+  → 如果 isLastChunk=true:
+    → 上传完整master video到存储服务 → 生成公网URL
+    → gRPC调用ai-service.AnalyzeVideo(video_url)
+    → 接收流式结果 → 保存数据库 → WebSocket推送前端
+    → 标记session为COMPLETED
+    → keep_video=false: 删除存储服务中的文件
+    → keep_video=true: 保留存储服务中的文件
 
 ai-service:
   接收video_url → 调用DashScope/Gemini API
@@ -188,7 +194,7 @@ ai-service:
 ```
 
 **优点**：分析连贯，理解更完整
-**缺点**：等待时间长，用户需等录制完成
+**缺点**：等待时间长，用户需等录制完成后才能看到结果
 
 ### 4.2 半实时分析模式（滑动窗口）
 
@@ -1078,7 +1084,9 @@ volumes:
 
 ### 整体分析模式
 ```
-web-recorder → core-service → 上传存储服务 → 生成URL → ai-service.AnalyzeVideo(url) → AI分析
+web-recorder → 上传chunks (isLastChunk标记) → core-service拼接master video
+           → isLastChunk=true时上传完整视频到存储服务 → 生成URL
+           → ai-service.AnalyzeVideo(url) → AI分析 → 标记COMPLETED
 ```
 
 ### 半实时模式（滑动窗口）
@@ -1113,4 +1121,6 @@ web-recorder → core-service → ai-service.ProcessVideo(path) → FFmpeg切片
 2. **Qwen改用DashScope SDK**：支持视频URL分析，OpenAI兼容接口无法读取视频
 3. **前端配置面板**：支持选择存储服务类型
 4. **存储服务抽象层**：StorageService接口 + 工厂模式实现
+5. **isLastChunk机制（2025-10-30）**：前端显式标记最后一个chunk，简化最后窗口处理，删除finishSession API和并发任务管理代码
+6. **Double类型精度（2025-10-30）**：所有时间相关字段从Integer改为Double，支持小数秒，避免累加截断误差
 

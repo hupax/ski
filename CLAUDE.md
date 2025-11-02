@@ -544,31 +544,43 @@ ski/
 ### 半实时分析模式完整流程
 
 ```
-1. web-recorder录制30秒 → 上传chunk_0.webm
+1. web-recorder录制35秒 → 上传chunk_0.webm (duration=35.2, isLastChunk=false)
    ↓
-2. core-service接收 → 保存到 /tmp/skiuo/session_xxx/chunk_0.webm
+2. core-service接收 → 拼接到master video
+   → 使用FFmpeg获取实际视频长度(GetVideoDuration gRPC)
+   → 更新session.currentVideoLength = 35.2 (Double精度)
    ↓
-3. core-service调用 gRPC: ai-service.ProcessVideo(本地路径)
+3. checkAndAnalyzeWindows检查触发条件:
+   - 正常触发: currentVideoLength >= nextWindowEnd (完整窗口)
+   - 最后chunk触发: isLastChunk=true && remainingLength >= 5s
    ↓
-4. ai-service: FFmpeg切片 → 返回3个窗口本地路径
-   [w0.mp4, w1.mp4, w2.mp4]
+4. 满足条件 → 调用 gRPC: ai-service.ProcessVideo(master_video_path)
    ↓
-5. core-service: 上传3个窗口到存储服务(COS/OSS/MinIO)
-   → 生成3个公网URL
+5. ai-service: FFmpeg切片 → 返回窗口本地路径
+   [w0.mp4 (0-15s), w1.mp4 (10-25s), w2.mp4 (20-35s)]
    ↓
-6. core-service: 逐个调用 gRPC: ai-service.AnalyzeVideo(url, context)
+6. core-service: 上传窗口到存储服务(COS/OSS/MinIO)
+   → 生成公网URL
    ↓
-7. ai-service: 调用 DashScope/Gemini API
+7. core-service: 逐个调用 gRPC: ai-service.AnalyzeVideo(url, context)
+   ↓
+8. ai-service: 调用 DashScope/Gemini API
    → AI从URL下载视频分析
    → 流式返回结果
    ↓
-8. core-service: 接收流式结果
+9. core-service: 接收流式结果
    → 保存PostgreSQL
    → WebSocket推送前端
    ↓
-9. core-service: 清理
-   → 删除本地临时文件
-   → 根据keepVideo决定是否删除存储服务中的视频
+10. 继续录制 chunk_1, chunk_2...
+    ↓
+11. 停止录制 → 最后一个chunk标记 isLastChunk=true
+    → checkAndAnalyzeWindows分析剩余窗口
+    → 自动标记 session 为 COMPLETED
+    ↓
+12. core-service: 清理
+    → 删除本地临时文件
+    → 根据keepVideo决定是否删除存储服务中的视频
 ```
 
 ---
@@ -720,6 +732,8 @@ ls -la /Users/hupax/ski/.env
 8. **gRPC代码生成**: 修改proto后需要重新生成Java和Python代码
 9. **数据库迁移**: application.yml中 `ddl-auto: update` 会自动更新表结构
 10. **不要提交.env文件** - .env包含敏感信息，已在.gitignore中排除
+11. **isLastChunk机制** - 前端停止录制时标记最后一个chunk，后端自动处理最后窗口和session完成
+12. **Double类型精度** - 所有时间相关字段使用Double支持小数秒，避免累加截断误差
 
 ---
 

@@ -78,13 +78,14 @@ public class GrpcClientService {
      * @param context       Previous window result
      * @param startOffset   Start time offset
      * @param endOffset     End time offset
+     * @param analysisMode  Analysis mode (full/sliding_window)
      * @param onChunk       Callback for each streaming chunk
      * @return CompletableFuture with full content
      */
     public CompletableFuture<String> analyzeVideo(String sessionId, int windowIndex,
                                                     String videoUrl, String aiModel,
                                                     String context, Double startOffset,
-                                                    Double endOffset,
+                                                    Double endOffset, String analysisMode,
                                                     Consumer<String> onChunk) {
         CompletableFuture<String> future = new CompletableFuture<>();
         StringBuilder fullContent = new StringBuilder();
@@ -98,6 +99,7 @@ public class GrpcClientService {
                     .setContext(context != null ? context : "")
                     .setStartOffset(startOffset.intValue())
                     .setEndOffset(endOffset.intValue())
+                    .setAnalysisMode(analysisMode)
                     .build();
 
             log.info("Calling AnalyzeVideo gRPC: sessionId={}, windowIndex={}, model={}",
@@ -154,10 +156,11 @@ public class GrpcClientService {
      */
     public String analyzeVideoSync(String sessionId, int windowIndex, String videoUrl,
                                     String aiModel, String context, Double startOffset,
-                                    Double endOffset, Consumer<String> onChunk) {
+                                    Double endOffset, String analysisMode,
+                                    Consumer<String> onChunk) {
         try {
             return analyzeVideo(sessionId, windowIndex, videoUrl, aiModel, context,
-                    startOffset, endOffset, onChunk).get(5, TimeUnit.MINUTES);
+                    startOffset, endOffset, analysisMode, onChunk).get(5, TimeUnit.MINUTES);
         } catch (Exception e) {
             log.error("AnalyzeVideo sync failed: {}", e.getMessage());
             throw new GrpcException("AnalyzeVideo sync failed", e);

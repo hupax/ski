@@ -10,7 +10,7 @@ Spring Boot 业务中枢 - 视频AI分析系统
 - gRPC 调用 ai-service
 - PostgreSQL 数据持久化
 - WebSocket 实时结果推送
-- **异步任务追踪**（防止并发竞态条件）
+- **isLastChunk 标记机制**（简化最后窗口处理）
 
 ## 编译和运行
 
@@ -122,7 +122,8 @@ Parameters:
 - analysisMode: String (可选，"FULL" 或 "SLIDING_WINDOW"，默认 "SLIDING_WINDOW")
 - keepVideo: Boolean (可选，默认 false)
 - storageType: String (可选，"minio" | "oss" | "cos"，默认 "cos")
-- duration: Integer (可选，视频时长秒数)
+- duration: Double (可选，视频时长秒数，支持小数)
+- isLastChunk: Boolean (可选，默认 false，标记是否为最后一个chunk)
 
 Response: 202 ACCEPTED
 {
@@ -189,27 +190,7 @@ Response: 200 OK
 ]
 ```
 
-### 5. 完成会话
-
-**重要**：前端停止录制后必须调用此接口，通知后端完成最终分析。
-
-```http
-POST /api/videos/sessions/{sessionId}/finish
-
-Response: 200 OK
-{
-  "sessionId": 1,
-  "status": "COMPLETED",
-  "message": "Session finished successfully"
-}
-```
-
-**功能**：
-- 等待所有异步 chunk 处理任务完成（防止竞态条件）
-- FULL模式：分析完整视频
-- SLIDING_WINDOW模式：分析剩余未覆盖的窗口
-
-### 6. 获取服务器配置
+### 5. 获取服务器配置
 
 ```http
 GET /api/config
@@ -224,7 +205,7 @@ Response: 200 OK
 
 前端根据此配置调整 chunk 时长，确保与后端窗口参数匹配。
 
-### 7. 健康检查
+### 6. 健康检查
 
 ```http
 GET /api/videos/health
@@ -265,21 +246,32 @@ stompClient.connect({}, function(frame) {
 
 #### 整体分析模式 (FULL)
 ```
-上传视频 → MinIO → 生成 URL → 调用 AnalyzeVideo → 保存结果 → WebSocket 推送
+上传chunk → 拼接到master video
+  → 继续录制...
+
+最后一个chunk (isLastChunk=true):
+  → 上传完整master video到存储服务 → 生成URL
+  → 调用 AnalyzeVideo → 保存结果 → WebSocket 推送
+  → 标记session为COMPLETED
+  → 清理临时文件
 ```
 
 #### 半实时模式 (SLIDING_WINDOW)
 ```
-上传视频 → 调用 ProcessVideo 切片 → 上传切片到 MinIO
+上传chunk → 拼接到master video → 检查触发条件
+  → 满足条件: 调用 ProcessVideo 切片 → 上传窗口到存储服务
   → 逐窗口调用 AnalyzeVideo（传递上下文）
   → 保存结果 → WebSocket 推送
   → 清理临时文件
+
+最后一个chunk (isLastChunk=true):
+  → 分析剩余窗口(剩余 >= 5秒) → 标记session为COMPLETED
 ```
 
 ### 核心组件
 
 - **VideoUploadService**: 处理文件上传和临时存储
-- **VideoProcessingService**: 协调两种分析模式的处理流程，**异步任务追踪**
+- **VideoProcessingService**: 协调两种分析模式的处理流程，**isLastChunk 触发条件**
 - **存储服务层** (工厂模式):
   - `StorageService` 接口
   - `MinioService` / `OssService` / `CosService` 实现
@@ -288,25 +280,20 @@ stompClient.connect({}, function(frame) {
 - **AnalysisService**: 保存分析结果、WebSocket 推送
 - **CleanupService**: 清理临时文件和存储服务对象
 
-### 异步处理与并发控制
+### 异步处理与 isLastChunk 机制
 
 **异步视频处理**：
 - 使用 `@Async` 注解和 `ThreadPoolTaskExecutor`
 - 上传接口立即返回 202 ACCEPTED
 - 视频处理在后台异步执行
 
-**并发竞态条件防护**：
-- 问题：前端上传最后一个chunk后立即调用`finishSession`，但后端可能还在异步处理
-- 解决：`VideoProcessingService` 追踪所有异步任务
-  ```java
-  // 注册异步任务
-  CompletableFuture<Void> task = processVideoChunk(...);
-  registerTask(sessionId, task);
-
-  // finishSession 等待所有任务完成
-  awaitSessionTasks(sessionId);  // 最多等待5分钟
-  ```
-- 确保 `finishSession` 读取到最新的 session 数据
+**isLastChunk 触发机制**：
+- 前端停止录制时，最后一个chunk标记 `isLastChunk=true`
+- 后端 `checkAndAnalyzeWindows` 检测到 isLastChunk 后：
+  - 正常触发条件: `currentLength >= nextWindowEnd` (完整窗口)
+  - 最后chunk触发条件: `isLastChunk=true && remainingLength >= 5s` (剩余视频足够)
+  - 分析完最后一个窗口后，自动标记 session 为 COMPLETED
+- 简化架构: 无需额外的 finishSession API，单一分析路径
 
 ### 定时任务
 
@@ -351,9 +338,9 @@ stompClient.connect({}, function(frame) {
 3. **错误处理完善**: 所有外部调用都有 try-catch
 4. **日志记录**: 关键操作都有日志
 5. **事务管理**: 数据库操作使用 `@Transactional`
-6. **异步任务追踪**: 防止 finishSession 并发竞态条件
+6. **isLastChunk 机制**: 前端显式标记最后一个chunk，简化最后窗口处理
 7. **资源清理**: 临时文件和存储对象按配置清理
-8. **重复分析防护**: `analyzeFinalWindows` 检查窗口覆盖情况
+8. **Double 类型精度**: 所有时间相关字段使用 Double，支持小数秒
 
 ## 相关文档
 

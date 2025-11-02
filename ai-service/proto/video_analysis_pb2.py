@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x14video_analysis.proto\x12\rvideoanalysis\"\x8b\x01\n\x0eProcessRequest\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x10\n\x08\x63hunk_id\x18\x02 \x01(\x03\x12\x12\n\nvideo_path\x18\x03 \x01(\t\x12\x15\n\ranalysis_mode\x18\x04 \x01(\t\x12\x13\n\x0bwindow_size\x18\x05 \x01(\x05\x12\x13\n\x0bwindow_step\x18\x06 \x01(\x05\"L\n\x0fProcessResponse\x12*\n\x07windows\x18\x01 \x03(\x0b\x32\x19.videoanalysis.WindowInfo\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"R\n\nWindowInfo\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x12\n\nstart_time\x18\x02 \x01(\x02\x12\x10\n\x08\x65nd_time\x18\x03 \x01(\x02\x12\x10\n\x08\x64uration\x18\x04 \x01(\x02\"\x9b\x01\n\x0f\x41nalysisRequest\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x14\n\x0cwindow_index\x18\x02 \x01(\x05\x12\x11\n\tvideo_url\x18\x03 \x01(\t\x12\x10\n\x08\x61i_model\x18\x04 \x01(\t\x12\x0f\n\x07\x63ontext\x18\x05 \x01(\t\x12\x14\n\x0cstart_offset\x18\x06 \x01(\x05\x12\x12\n\nend_offset\x18\x07 \x01(\x05\"n\n\x10\x41nalysisResponse\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x14\n\x0cwindow_index\x18\x02 \x01(\x05\x12\x0f\n\x07\x63ontent\x18\x03 \x01(\t\x12\x10\n\x08is_final\x18\x04 \x01(\x08\x12\r\n\x05\x65rror\x18\x05 \x01(\t\"O\n\x12\x45xtractTailRequest\x12\x12\n\nvideo_path\x18\x01 \x01(\t\x12\x13\n\x0boutput_path\x18\x02 \x01(\t\x12\x10\n\x08\x64uration\x18\x03 \x01(\x05\"9\n\x13\x45xtractTailResponse\x12\x13\n\x0boutput_path\x18\x01 \x01(\t\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"?\n\x13\x43oncatVideosRequest\x12\x13\n\x0bvideo_paths\x18\x01 \x03(\t\x12\x13\n\x0boutput_path\x18\x02 \x01(\t\":\n\x14\x43oncatVideosResponse\x12\x13\n\x0boutput_path\x18\x01 \x01(\t\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"f\n\x15\x45xtractSegmentRequest\x12\x12\n\nvideo_path\x18\x01 \x01(\t\x12\x13\n\x0boutput_path\x18\x02 \x01(\t\x12\x12\n\nstart_time\x18\x03 \x01(\x02\x12\x10\n\x08\x65nd_time\x18\x04 \x01(\x02\"<\n\x16\x45xtractSegmentResponse\x12\x13\n\x0boutput_path\x18\x01 \x01(\t\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"-\n\x17GetVideoDurationRequest\x12\x12\n\nvideo_path\x18\x01 \x01(\t\";\n\x18GetVideoDurationResponse\x12\x10\n\x08\x64uration\x18\x01 \x01(\x02\x12\r\n\x05\x65rror\x18\x02 \x01(\t2\xab\x04\n\x14VideoAnalysisService\x12M\n\x0cProcessVideo\x12\x1d.videoanalysis.ProcessRequest\x1a\x1e.videoanalysis.ProcessResponse\x12Q\n\x0c\x41nalyzeVideo\x12\x1e.videoanalysis.AnalysisRequest\x1a\x1f.videoanalysis.AnalysisResponse0\x01\x12T\n\x0b\x45xtractTail\x12!.videoanalysis.ExtractTailRequest\x1a\".videoanalysis.ExtractTailResponse\x12W\n\x0c\x43oncatVideos\x12\".videoanalysis.ConcatVideosRequest\x1a#.videoanalysis.ConcatVideosResponse\x12]\n\x0e\x45xtractSegment\x12$.videoanalysis.ExtractSegmentRequest\x1a%.videoanalysis.ExtractSegmentResponse\x12\x63\n\x10GetVideoDuration\x12&.videoanalysis.GetVideoDurationRequest\x1a\'.videoanalysis.GetVideoDurationResponseB&\n\x0e\x63om.skiuo.grpcB\x12VideoAnalysisProtoP\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x14video_analysis.proto\x12\rvideoanalysis\"\x8b\x01\n\x0eProcessRequest\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x10\n\x08\x63hunk_id\x18\x02 \x01(\x03\x12\x12\n\nvideo_path\x18\x03 \x01(\t\x12\x15\n\ranalysis_mode\x18\x04 \x01(\t\x12\x13\n\x0bwindow_size\x18\x05 \x01(\x05\x12\x13\n\x0bwindow_step\x18\x06 \x01(\x05\"L\n\x0fProcessResponse\x12*\n\x07windows\x18\x01 \x03(\x0b\x32\x19.videoanalysis.WindowInfo\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"R\n\nWindowInfo\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x12\n\nstart_time\x18\x02 \x01(\x02\x12\x10\n\x08\x65nd_time\x18\x03 \x01(\x02\x12\x10\n\x08\x64uration\x18\x04 \x01(\x02\"\xb2\x01\n\x0f\x41nalysisRequest\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x14\n\x0cwindow_index\x18\x02 \x01(\x05\x12\x11\n\tvideo_url\x18\x03 \x01(\t\x12\x10\n\x08\x61i_model\x18\x04 \x01(\t\x12\x0f\n\x07\x63ontext\x18\x05 \x01(\t\x12\x14\n\x0cstart_offset\x18\x06 \x01(\x05\x12\x12\n\nend_offset\x18\x07 \x01(\x05\x12\x15\n\ranalysis_mode\x18\x08 \x01(\t\"n\n\x10\x41nalysisResponse\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x14\n\x0cwindow_index\x18\x02 \x01(\x05\x12\x0f\n\x07\x63ontent\x18\x03 \x01(\t\x12\x10\n\x08is_final\x18\x04 \x01(\x08\x12\r\n\x05\x65rror\x18\x05 \x01(\t\"O\n\x12\x45xtractTailRequest\x12\x12\n\nvideo_path\x18\x01 \x01(\t\x12\x13\n\x0boutput_path\x18\x02 \x01(\t\x12\x10\n\x08\x64uration\x18\x03 \x01(\x05\"9\n\x13\x45xtractTailResponse\x12\x13\n\x0boutput_path\x18\x01 \x01(\t\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"?\n\x13\x43oncatVideosRequest\x12\x13\n\x0bvideo_paths\x18\x01 \x03(\t\x12\x13\n\x0boutput_path\x18\x02 \x01(\t\":\n\x14\x43oncatVideosResponse\x12\x13\n\x0boutput_path\x18\x01 \x01(\t\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"f\n\x15\x45xtractSegmentRequest\x12\x12\n\nvideo_path\x18\x01 \x01(\t\x12\x13\n\x0boutput_path\x18\x02 \x01(\t\x12\x12\n\nstart_time\x18\x03 \x01(\x02\x12\x10\n\x08\x65nd_time\x18\x04 \x01(\x02\"<\n\x16\x45xtractSegmentResponse\x12\x13\n\x0boutput_path\x18\x01 \x01(\t\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"-\n\x17GetVideoDurationRequest\x12\x12\n\nvideo_path\x18\x01 \x01(\t\";\n\x18GetVideoDurationResponse\x12\x10\n\x08\x64uration\x18\x01 \x01(\x02\x12\r\n\x05\x65rror\x18\x02 \x01(\t2\xab\x04\n\x14VideoAnalysisService\x12M\n\x0cProcessVideo\x12\x1d.videoanalysis.ProcessRequest\x1a\x1e.videoanalysis.ProcessResponse\x12Q\n\x0c\x41nalyzeVideo\x12\x1e.videoanalysis.AnalysisRequest\x1a\x1f.videoanalysis.AnalysisResponse0\x01\x12T\n\x0b\x45xtractTail\x12!.videoanalysis.ExtractTailRequest\x1a\".videoanalysis.ExtractTailResponse\x12W\n\x0c\x43oncatVideos\x12\".videoanalysis.ConcatVideosRequest\x1a#.videoanalysis.ConcatVideosResponse\x12]\n\x0e\x45xtractSegment\x12$.videoanalysis.ExtractSegmentRequest\x1a%.videoanalysis.ExtractSegmentResponse\x12\x63\n\x10GetVideoDuration\x12&.videoanalysis.GetVideoDurationRequest\x1a\'.videoanalysis.GetVideoDurationResponseB&\n\x0e\x63om.skiuo.grpcB\x12VideoAnalysisProtoP\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -39,25 +39,25 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_WINDOWINFO']._serialized_start=259
   _globals['_WINDOWINFO']._serialized_end=341
   _globals['_ANALYSISREQUEST']._serialized_start=344
-  _globals['_ANALYSISREQUEST']._serialized_end=499
-  _globals['_ANALYSISRESPONSE']._serialized_start=501
-  _globals['_ANALYSISRESPONSE']._serialized_end=611
-  _globals['_EXTRACTTAILREQUEST']._serialized_start=613
-  _globals['_EXTRACTTAILREQUEST']._serialized_end=692
-  _globals['_EXTRACTTAILRESPONSE']._serialized_start=694
-  _globals['_EXTRACTTAILRESPONSE']._serialized_end=751
-  _globals['_CONCATVIDEOSREQUEST']._serialized_start=753
-  _globals['_CONCATVIDEOSREQUEST']._serialized_end=816
-  _globals['_CONCATVIDEOSRESPONSE']._serialized_start=818
-  _globals['_CONCATVIDEOSRESPONSE']._serialized_end=876
-  _globals['_EXTRACTSEGMENTREQUEST']._serialized_start=878
-  _globals['_EXTRACTSEGMENTREQUEST']._serialized_end=980
-  _globals['_EXTRACTSEGMENTRESPONSE']._serialized_start=982
-  _globals['_EXTRACTSEGMENTRESPONSE']._serialized_end=1042
-  _globals['_GETVIDEODURATIONREQUEST']._serialized_start=1044
-  _globals['_GETVIDEODURATIONREQUEST']._serialized_end=1089
-  _globals['_GETVIDEODURATIONRESPONSE']._serialized_start=1091
-  _globals['_GETVIDEODURATIONRESPONSE']._serialized_end=1150
-  _globals['_VIDEOANALYSISSERVICE']._serialized_start=1153
-  _globals['_VIDEOANALYSISSERVICE']._serialized_end=1708
+  _globals['_ANALYSISREQUEST']._serialized_end=522
+  _globals['_ANALYSISRESPONSE']._serialized_start=524
+  _globals['_ANALYSISRESPONSE']._serialized_end=634
+  _globals['_EXTRACTTAILREQUEST']._serialized_start=636
+  _globals['_EXTRACTTAILREQUEST']._serialized_end=715
+  _globals['_EXTRACTTAILRESPONSE']._serialized_start=717
+  _globals['_EXTRACTTAILRESPONSE']._serialized_end=774
+  _globals['_CONCATVIDEOSREQUEST']._serialized_start=776
+  _globals['_CONCATVIDEOSREQUEST']._serialized_end=839
+  _globals['_CONCATVIDEOSRESPONSE']._serialized_start=841
+  _globals['_CONCATVIDEOSRESPONSE']._serialized_end=899
+  _globals['_EXTRACTSEGMENTREQUEST']._serialized_start=901
+  _globals['_EXTRACTSEGMENTREQUEST']._serialized_end=1003
+  _globals['_EXTRACTSEGMENTRESPONSE']._serialized_start=1005
+  _globals['_EXTRACTSEGMENTRESPONSE']._serialized_end=1065
+  _globals['_GETVIDEODURATIONREQUEST']._serialized_start=1067
+  _globals['_GETVIDEODURATIONREQUEST']._serialized_end=1112
+  _globals['_GETVIDEODURATIONRESPONSE']._serialized_start=1114
+  _globals['_GETVIDEODURATIONRESPONSE']._serialized_end=1173
+  _globals['_VIDEOANALYSISSERVICE']._serialized_start=1176
+  _globals['_VIDEOANALYSISSERVICE']._serialized_end=1731
 # @@protoc_insertion_point(module_scope)

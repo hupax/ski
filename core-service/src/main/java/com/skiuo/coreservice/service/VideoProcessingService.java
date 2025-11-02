@@ -54,7 +54,7 @@ public class VideoProcessingService {
 
             if (session.getAnalysisMode() == Session.AnalysisMode.FULL) {
                 // Full analysis mode
-                processFullAnalysisMode(session, chunk, localPath);
+                processFullAnalysisMode(session, chunk, localPath, isLastChunk);
             } else {
                 // Sliding window mode
                 processSlidingWindowMode(session, chunk, localPath, isLastChunk);
@@ -78,17 +78,26 @@ public class VideoProcessingService {
     
     
     /**
-     * Full analysis mode: append to master video, analyze at session end
+     * Full analysis mode: append to master video, analyze when isLastChunk=true
      */
-    private void processFullAnalysisMode(Session session, VideoChunk chunk, String localPath) {
-        log.info("Processing in FULL mode (NEW): sessionId={}", session.getId());
-        
-        // FULL mode: just append to master video
-        // Actual analysis happens when session ends (finishSession)
+    private void processFullAnalysisMode(Session session, VideoChunk chunk, String localPath, Boolean isLastChunk) {
+        log.info("Processing in FULL mode: sessionId={}, isLastChunk={}", session.getId(), isLastChunk);
+
+        // Step 1: Append chunk to master video
         appendToMasterVideo(session, localPath, chunk.getDuration());
-        
+
         log.info("FULL mode: appended chunk to master video, total length={}s",
                 session.getCurrentVideoLength());
+
+        // Step 2: If this is the last chunk, analyze the complete master video
+        if (isLastChunk) {
+            log.info("Last chunk received, analyzing complete master video for session {}", session.getId());
+            analyzeFullMasterVideo(session);
+
+            // Mark session as completed
+            videoUploadService.updateSessionStatus(session.getId(), Session.SessionStatus.COMPLETED);
+            log.info("FULL mode: session {} marked as COMPLETED", session.getId());
+        }
     }
     
     
@@ -122,6 +131,7 @@ public class VideoProcessingService {
                     "",  // no context for full analysis
                     0.0,
                     session.getCurrentVideoLength(),
+                    "full",  // IMPORTANT: pass "full" mode to use correct prompt
                     content -> analysisService.sendStreamingResult(session.getId(), 0, content)
             );
             
@@ -381,6 +391,7 @@ public class VideoProcessingService {
                     context,
                     startTime,
                     endTime,
+                    "sliding_window",  // Pass sliding_window mode
                     content -> analysisService.sendStreamingResult(session.getId(), globalWindowIndex, content)
             );
             
