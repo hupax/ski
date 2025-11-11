@@ -141,8 +141,6 @@ export function useMediaRecorder(config: RecordingConfig): UseMediaRecorderRetur
    */
   const stopRecording = useCallback(async () => {
     if (recorderRef.current) {
-      const currentSessionId = sessionIdRef.current;
-
       // Stop recording (will trigger ondataavailable for final chunk)
       recorderRef.current.stopRecording();
 

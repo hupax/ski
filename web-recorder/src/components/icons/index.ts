@@ -1,0 +1,16 @@
+export { SettingsIcon } from './Settings';
+export { HistoryIcon } from './History';
+export { VideoIcon } from './Video';
+export { PlayIcon } from './Play';
+export { PauseIcon } from './Pause';
+export { StopIcon } from './Stop';
+export { ChevronLeftIcon } from './ChevronLeft';
+export { ChevronRightIcon } from './ChevronRight';
+export { XIcon } from './X';
+export { MenuIcon } from './Menu';
+export { UploadIcon } from './Upload';
+export { CheckIcon } from './Check';
+export { DownloadIcon } from './Download';
+export { TrashIcon } from './Trash';
+export { MinimizeIcon } from './Minimize';
+export { MaximizeIcon } from './Maximize';

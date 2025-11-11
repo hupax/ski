@@ -1,3 +1,163 @@
+/* Markdown 渲染样式 - @import must come first */
+@import './styles/code-block.css';
+@import './styles/prism.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ==================== Design System ==================== */
+
+/* OpenAI-inspired custom scrollbar */
+.openai-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.openai-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.openai-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgb(236, 236, 236);
+  border-radius: 20px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+.openai-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(217, 217, 217);
+}
+
+/* Main content area scrollbar */
+.main-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.main-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.main-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+  transition: background 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.main-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ==================== Animations ==================== */
+
+@keyframes slideUpAndFade {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDownAndFade {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.animate-slideUpAndFade {
+  animation: slideUpAndFade 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-slideDownAndFade {
+  animation: slideDownAndFade 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-fadeIn {
+  animation: fadeIn 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-fadeOut {
+  animation: fadeOut 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==================== Layout ==================== */
+
+/* Remove global transitions - let components control their own */
+
+/* ==================== Markdown Content ==================== */
+
+.markdown-content {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: rgb(55, 65, 81);
+}
+
+.markdown-content p {
+  margin-bottom: 0.75rem;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3 {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: rgb(17, 24, 39);
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin-bottom: 0.75rem;
+  padding-left: 1.5rem;
+}
+
+.markdown-content pre {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.markdown-content code {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.8125rem;
+}
+
+.markdown-content a {
+  color: rgb(59, 130, 246);
+  text-decoration: none;
+  transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.markdown-content a:hover {
+  color: rgb(37, 99, 235);
+  text-decoration: underline;
+}

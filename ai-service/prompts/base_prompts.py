@@ -145,7 +145,9 @@ Please continue analyzing this video:"""
 
 # ==================== 整体分析模式 ====================
 
-FULL_VIDEO_PROMPT_ZH = """描述这个视频，我想通过你帮我记录这一视频.
+FULL_VIDEO_PROMPT_ZH = """描述这个视频,我想通过你帮我记录这一视频.
+要求:
+    1. 只记录事实,不要因为输出格式而想当然的记录视频没有的内容.
 
 输出格式：
 - **直接返回Markdown格式的文本**（可以使用标题、列表、加粗等Markdown语法）
@@ -288,7 +290,7 @@ public void updateUser(User u) {{ repo.save(u); }} // version check added
 
 ---
 
-### 使用说明（未来复盘）
+### Step
 
 - **第一步：** 按时间轴快速浏览锚点，重建节奏感（你当时的气息、光标移动、笔记）。
     

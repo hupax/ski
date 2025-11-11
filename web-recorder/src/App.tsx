@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ConfigPanel } from './components/ConfigPanel';
-import { StatusIndicator } from './components/StatusIndicator';
-import { VideoRecorder } from './components/VideoRecorder';
-import { TestUploader } from './components/TestUploader';
+import { Layout } from './components/layout';
+import { ConfigSidebar, SessionsSidebar, RecordingSidebar } from './components/sidebars';
 import { AnalysisDisplay } from './components/AnalysisDisplay';
+import { TestUploader } from './components/TestUploader';
+import { PictureInPictureVideo } from './components/PictureInPictureVideo';
 import { useMediaRecorder } from './hooks/useMediaRecorder';
 import { useWebSocket } from './hooks/useWebSocket';
-import { DEFAULT_CONFIG, UI_TEXT, updateChunkDuration } from './config/constants';
+import { DEFAULT_CONFIG, updateChunkDuration } from './config/constants';
 import { getServerConfig } from './services/apiClient';
 import type { RecordingConfig } from './types';
 import { RecordingState, AppMode } from './types';
@@ -27,7 +27,9 @@ function App() {
         const serverConfig = await getServerConfig();
         updateChunkDuration(serverConfig.recommendedChunkDuration);
         setChunkDuration(serverConfig.recommendedChunkDuration);
-        console.log(`Initialized with server config: window=${serverConfig.windowSize}s, step=${serverConfig.windowStep}s, chunk=${serverConfig.recommendedChunkDuration}s`);
+        console.log(
+          `Initialized with server config: window=${serverConfig.windowSize}s, step=${serverConfig.windowStep}s, chunk=${serverConfig.recommendedChunkDuration}s`
+        );
       } catch (error) {
         console.error('Failed to fetch server config, using defaults:', error);
       }
@@ -50,19 +52,24 @@ function App() {
   } = useMediaRecorder(config);
 
   // Use appropriate sessionId based on app mode
-  const activeSessionId = appMode === AppMode.RECORD ? recordModeSessionId : testModeSessionId;
+  const activeSessionId =
+    appMode === AppMode.RECORD ? recordModeSessionId : testModeSessionId;
 
   // WebSocket hook for receiving analysis results
   const { isConnected, results } = useWebSocket(activeSessionId);
 
   // Disable config changes while recording
-  const isConfigDisabled = state !== RecordingState.IDLE && state !== RecordingState.STOPPED;
+  const isConfigDisabled =
+    state !== RecordingState.IDLE && state !== RecordingState.STOPPED;
 
   // Handle test mode session ID changes
-  const handleTestModeSessionIdChange = useCallback((sessionId: number | null) => {
-    setTestModeSessionId(sessionId);
-    console.log('Test mode session ID updated:', sessionId);
-  }, []);
+  const handleTestModeSessionIdChange = useCallback(
+    (sessionId: number | null) => {
+      setTestModeSessionId(sessionId);
+      console.log('Test mode session ID updated:', sessionId);
+    },
+    []
+  );
 
   // Clear test mode session when switching modes
   useEffect(() => {
@@ -72,63 +79,99 @@ function App() {
   }, [appMode]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h1 className="text-3xl font-bold text-gray-900">{UI_TEXT.APP_TITLE}</h1>
-          <p className="mt-1 text-sm text-gray-600">
-            通过浏览器录制视频，AI 实时分析生成文字记录
-          </p>
-        </div>
-      </header>
+    <>
+      {/* Picture-in-Picture Video (only in RECORD mode) */}
+      {appMode === AppMode.RECORD && (
+        <PictureInPictureVideo
+          stream={stream}
+          isRecording={state === RecordingState.RECORDING}
+        />
+      )}
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Status Indicator */}
-        <div className="mb-6">
-          <StatusIndicator
-            state={state}
-            sessionId={activeSessionId}
-            chunkIndex={chunkIndex}
-            error={error}
-          />
-        </div>
-
-        {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column: Config + Video Recorder */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Config Panel */}
-            <ConfigPanel
+      <Layout
+        // Config Sidebar Content
+        configContent={
+        <div className="flex flex-col h-full">
+          <div className="flex-shrink-0">
+            <ConfigSidebar
               config={config}
               onChange={setConfig}
               disabled={isConfigDisabled}
               appMode={appMode}
               onAppModeChange={setAppMode}
             />
+          </div>
 
-            {/* Video Recorder or Test Uploader */}
-            {appMode === AppMode.RECORD ? (
-              <VideoRecorder
-                state={state}
-                stream={stream}
-                onStart={startRecording}
-                onStop={stopRecording}
-                onPause={pauseRecording}
-                onResume={resumeRecording}
-              />
-            ) : (
+          {/* Test Mode Uploader (below config) */}
+          {appMode === AppMode.TEST && (
+            <div className="flex-1 overflow-y-auto border-t border-gray-200">
               <TestUploader
                 config={config}
                 chunkDuration={chunkDuration}
                 onSessionIdChange={handleTestModeSessionIdChange}
               />
-            )}
+            </div>
+          )}
+        </div>
+      }
+      // Sessions Sidebar Content
+      sessionsContent={
+        <SessionsSidebar
+          sessions={[]}
+          onSessionSelect={(id) => console.log('Selected session:', id)}
+          onSessionDelete={(id) => console.log('Delete session:', id)}
+        />
+      }
+      // Recording Sidebar Content
+      recordingContent={
+        <RecordingSidebar
+          state={state}
+          sessionId={activeSessionId}
+          chunkIndex={chunkIndex}
+          onStart={startRecording}
+          onPause={pauseRecording}
+          onResume={resumeRecording}
+          onStop={stopRecording}
+        />
+      }
+      // Main Content Area
+      mainContent={
+        <div className="h-full flex flex-col bg-white">
+          {/* Header Bar */}
+          <div className="border-b border-gray-200 px-6 py-4 flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-900">
+                  SKI Video Analysis
+                </h1>
+                <p className="text-sm text-gray-500 mt-1">
+                  Record video and get AI-powered real-time transcription
+                </p>
+              </div>
+
+              {/* Status Badge */}
+              <div className="flex items-center space-x-3">
+                {error && (
+                  <div className="text-sm text-red-600 bg-red-50 px-3 py-1.5 rounded-lg">
+                    ❌ {error}
+                  </div>
+                )}
+                <div className="flex items-center space-x-2 text-sm">
+                  <div
+                    className={`w-2 h-2 rounded-full ${
+                      isConnected ? 'bg-green-500' : 'bg-gray-400'
+                    }`}
+                  />
+                  <span className="text-gray-600">
+                    {isConnected ? 'WebSocket Connected' : 'WebSocket Disconnected'}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Right Column: Analysis Results */}
-          <div className="lg:col-span-2">
+          {/* Content Area - Always shows AnalysisDisplay */}
+          <div className="flex-1 overflow-hidden p-6">
             <AnalysisDisplay
               results={results}
               isConnected={isConnected}
@@ -136,41 +179,9 @@ function App() {
             />
           </div>
         </div>
-
-        {/* Footer Info */}
-        <div className="mt-8 text-center text-sm text-gray-600">
-          <p>
-            录制的视频每 {chunkDuration} 秒自动分段上传并进行 AI 分析。
-            {config.keepVideo
-              ? '视频将保留在服务器。'
-              : '分析完成后视频将自动删除。'}
-          </p>
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="mt-12 bg-white border-t border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between text-sm text-gray-600">
-            <div>
-              <p>
-                Skiuo © 2025 - AI 视频录制分析系统
-              </p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="flex items-center space-x-2">
-                <div
-                  className={`w-2 h-2 rounded-full ${
-                    isConnected ? 'bg-green-500' : 'bg-gray-400'
-                  }`}
-                />
-                <span>WebSocket {isConnected ? '已连接' : '未连接'}</span>
-              </span>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
+      }
+      />
+    </>
   );
 }
 

@@ -1,0 +1,306 @@
+/* Prism.js 自定义主题 - 紫色暗黑风格 */
+
+/* 基础代码样式 */
+code[class*='language-'],
+pre[class*='language-'] {
+  color: #e2e8f0;
+  background: none;
+  font-family: 'Fira Code', 'JetBrains Mono', Consolas, 'Monaco', 'Courier New',
+    monospace;
+  font-size: 14px;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  word-wrap: normal;
+  line-height: 1.6;
+  -moz-tab-size: 4;
+  -o-tab-size: 4;
+  tab-size: 4;
+  -webkit-hyphens: none;
+  -moz-hyphens: none;
+  -ms-hyphens: none;
+  hyphens: none;
+}
+
+/* 选中文本样式 */
+code[class*='language-']::-moz-selection,
+pre[class*='language-']::-moz-selection,
+code[class*='language-'] ::-moz-selection,
+pre[class*='language-'] ::-moz-selection {
+  background: rgba(139, 92, 246, 0.3);
+}
+
+code[class*='language-']::selection,
+pre[class*='language-']::selection,
+code[class*='language-'] ::selection,
+pre[class*='language-'] ::selection {
+  background: rgba(139, 92, 246, 0.3);
+}
+
+/* 代码块容器 */
+pre[class*='language-'] {
+  padding: 0;
+  margin: 0;
+  overflow: auto;
+}
+
+/* 行内代码 */
+:not(pre) > code[class*='language-'] {
+  padding: 0.2em 0.3em;
+  border-radius: 0.3em;
+  white-space: normal;
+}
+
+/* Token 样式 */
+
+/* 注释 */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #64748b;
+  font-style: italic;
+}
+
+/* 标点符号 */
+.token.punctuation {
+  color: #94a3b8;
+}
+
+/* 属性、标签、布尔值、数字、常量、符号、删除 */
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol,
+.token.deleted {
+  color: #f472b6;
+}
+
+/* 选择器、属性名、字符、构建、插入 */
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+  color: #34d399;
+}
+
+/* 操作符、实体、URL */
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+  color: #60a5fa;
+}
+
+/* 关键字、重要 */
+.token.keyword,
+.token.important {
+  color: #a855f7;
+  font-weight: bold;
+}
+
+/* 函数 */
+.token.function {
+  color: #fbbf24;
+}
+
+/* 正则表达式 */
+.token.regex {
+  color: #10b981;
+}
+
+/* 变量 */
+.token.variable {
+  color: #ef4444;
+}
+
+/* 类名 */
+.token.class-name {
+  color: #fb7185;
+}
+
+/* 粗体 */
+.token.bold {
+  font-weight: bold;
+}
+
+/* 斜体 */
+.token.italic {
+  font-style: italic;
+}
+
+/* 命名空间 */
+.token.namespace {
+  opacity: 0.7;
+}
+
+/* JavaScript 特定样式 */
+.language-javascript .token.template-string {
+  color: #34d399;
+}
+
+.language-javascript .token.template-punctuation {
+  color: #a855f7;
+}
+
+/* CSS 特定样式 */
+.language-css .token.property {
+  color: #60a5fa;
+}
+
+.language-css .token.function {
+  color: #fbbf24;
+}
+
+/* HTML 特定样式 */
+.language-markup .token.tag .token.punctuation {
+  color: #94a3b8;
+}
+
+.language-markup .token.tag .token.tag {
+  color: #f472b6;
+}
+
+.language-markup .token.attr-name {
+  color: #fbbf24;
+}
+
+.language-markup .token.attr-value {
+  color: #34d399;
+}
+
+/* JSON 特定样式 */
+.language-json .token.property {
+  color: #60a5fa;
+}
+
+.language-json .token.string {
+  color: #34d399;
+}
+
+/* Python 特定样式 */
+.language-python .token.decorator {
+  color: #fbbf24;
+}
+
+.language-python .token.triple-quoted-string {
+  color: #34d399;
+  font-style: italic;
+}
+
+/* TypeScript 特定样式 */
+.language-typescript .token.keyword.type {
+  color: #60a5fa;
+}
+
+.language-typescript .token.generic {
+  color: #fb7185;
+}
+
+/* 高亮行 */
+.highlight-line {
+  background-color: rgba(139, 92, 246, 0.1);
+  border-left: 4px solid #a855f7;
+  padding-left: 0.5rem;
+  margin-left: -0.5rem;
+}
+
+/* 行号 */
+.line-numbers .line-numbers-rows {
+  border-right: 1px solid rgba(139, 92, 246, 0.2);
+  padding-right: 0.5rem;
+  margin-right: 0.5rem;
+}
+
+.line-numbers-rows > span:before {
+  color: #64748b;
+  content: counter(linenumber);
+  counter-increment: linenumber;
+  display: block;
+  text-align: right;
+}
+
+/* 代码标题 */
+.code-title {
+  background: linear-gradient(
+    90deg,
+    rgba(139, 92, 246, 0.1) 0%,
+    rgba(59, 130, 246, 0.1) 100%
+  );
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.75rem 1rem;
+}
+
+/* 特殊语言样式 */
+
+/* Bash/Shell */
+.language-bash .token.shebang,
+.language-shell .token.shebang {
+  color: #64748b;
+  font-style: italic;
+}
+
+.language-bash .token.environment,
+.language-shell .token.environment {
+  color: #fbbf24;
+}
+
+/* YAML */
+.language-yaml .token.key {
+  color: #60a5fa;
+}
+
+.language-yaml .token.anchor {
+  color: #a855f7;
+}
+
+/* SQL */
+.language-sql .token.keyword {
+  color: #a855f7;
+  text-transform: uppercase;
+}
+
+/* 差异对比 */
+.token.inserted {
+  background-color: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+
+.token.deleted {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+/* 错误高亮 */
+.token.error {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  text-decoration: underline wavy;
+}
+
+/* 警告高亮 */
+.token.warning {
+  background-color: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
+}
+
+/* 信息高亮 */
+.token.info {
+  background-color: rgba(96, 165, 250, 0.1);
+  color: #60a5fa;
+}
+
+/* 成功高亮 */
+.token.success {
+  background-color: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}

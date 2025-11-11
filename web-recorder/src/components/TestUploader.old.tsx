@@ -5,8 +5,8 @@ import { TestUploadState as TestState } from '../types';
 
 interface TestUploaderProps {
   config: RecordingConfig;
-  chunkDuration: number;
-  onSessionIdChange?: (sessionId: number | null) => void;
+  chunkDuration: number; // seconds, from server config
+  onSessionIdChange?: (sessionId: number | null) => void; // Callback to notify parent of sessionId
 }
 
 export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestUploaderProps) {
@@ -17,12 +17,14 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number>(0);
 
+  // Use refs to avoid closure traps (same pattern as useMediaRecorder)
   const chunksRef = useRef<ChunkFile[]>([]);
   const currentChunkIndexRef = useRef<number>(0);
   const sessionIdRef = useRef<number | null>(null);
   const countdownIntervalRef = useRef<number | null>(null);
-  const remainingTimeRef = useRef<number>(0);
+  const remainingTimeRef = useRef<number>(0); // for pause/resume
 
+  // Sync refs with state
   useEffect(() => {
     chunksRef.current = chunks;
   }, [chunks]);
@@ -35,15 +37,20 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
     sessionIdRef.current = sessionId;
   }, [sessionId]);
 
+  /**
+   * Handle file selection
+   */
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) {
       return;
     }
 
+    // Convert FileList to ChunkFile array
     const chunkFiles: ChunkFile[] = Array.from(files)
       .filter(file => file.name.endsWith('.webm') || file.name.endsWith('.mp4'))
       .sort((a, b) => {
+        // Extract chunk index from filename (e.g., chunk_0.webm)
         const indexA = parseInt(a.name.match(/chunk_(\d+)/)?.[1] || '0');
         const indexB = parseInt(b.name.match(/chunk_(\d+)/)?.[1] || '0');
         return indexA - indexB;
@@ -51,7 +58,7 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
       .map((file, index) => ({
         file,
         index,
-        duration: chunkDuration,
+        duration: chunkDuration, // Use server config
       }));
 
     setChunks(chunkFiles);
@@ -60,6 +67,7 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
     setError(null);
     setState(TestState.IDLE);
 
+    // Reset refs
     chunksRef.current = chunkFiles;
     currentChunkIndexRef.current = 0;
     sessionIdRef.current = null;
@@ -67,6 +75,9 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
     console.log(`Selected ${chunkFiles.length} chunks (duration: ${chunkDuration}s each):`, chunkFiles.map(c => c.file.name));
   }, [chunkDuration]);
 
+  /**
+   * Upload a single chunk
+   */
   const uploadChunk = useCallback(async (chunk: ChunkFile, isLastChunk: boolean = false) => {
     try {
       console.log(`Uploading chunk ${chunk.index}/${chunksRef.current.length - 1}...`);
@@ -85,11 +96,13 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
         isLastChunk,
       });
 
+      // Save session ID from first upload
       if (!sessionIdRef.current && response.sessionId) {
         sessionIdRef.current = response.sessionId;
         setSessionId(response.sessionId);
         console.log('Session created:', response.sessionId);
 
+        // Notify parent component (App.tsx) of the new session ID for WebSocket subscription
         if (onSessionIdChange) {
           onSessionIdChange(response.sessionId);
         }
@@ -104,16 +117,22 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
       setState(TestState.ERROR);
       return false;
     }
-  }, [config, onSessionIdChange]);
+  }, [config]);
 
+  /**
+   * Start countdown before next upload
+   * Uses remainingTimeRef to support pause/resume
+   */
   const startCountdown = useCallback((seconds: number, onComplete: () => void) => {
     remainingTimeRef.current = seconds;
     setCountdown(seconds);
 
+    // Clear any existing interval
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
     }
 
+    // Update countdown every second
     countdownIntervalRef.current = window.setInterval(() => {
       remainingTimeRef.current -= 1;
       setCountdown(remainingTimeRef.current);
@@ -128,6 +147,9 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
     }, 1000);
   }, []);
 
+  /**
+   * Upload all chunks sequentially (using refs to avoid closure trap)
+   */
   const uploadNextChunkRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   const uploadNextChunk = useCallback(async () => {
@@ -137,12 +159,15 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
     if (currentIndex >= allChunks.length) {
       console.log('All chunks uploaded!');
 
+      // Clear countdown timer
       if (countdownIntervalRef.current) {
         clearInterval(countdownIntervalRef.current);
         countdownIntervalRef.current = null;
       }
 
+      // No need to call finishSession - last chunk is marked with isLastChunk=true
       console.log('Test upload complete. Last chunk was processed with isLastChunk=true');
+
       setState(TestState.COMPLETED);
       return;
     }
@@ -150,21 +175,26 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
     const chunk = allChunks[currentIndex];
     const isLastChunk = currentIndex === allChunks.length - 1;
 
+    // Upload current chunk
     const success = await uploadChunk(chunk, isLastChunk);
 
     if (!success) {
-      return;
+      return; // Error occurred, stop
     }
 
+    // Move to next chunk
     const nextIndex = currentIndex + 1;
     currentChunkIndexRef.current = nextIndex;
     setCurrentChunkIndex(nextIndex);
 
+    // If not last chunk, wait before uploading next
     if (nextIndex < allChunks.length) {
       setState(TestState.WAITING);
 
-      const testInterval = 10;
+      // Test mode: fixed 10s interval between chunks
+      const testInterval = 10; // seconds
       startCountdown(testInterval, () => {
+        // Use ref to call the latest version of uploadNextChunk
         uploadNextChunkRef.current?.();
       });
     } else {
@@ -172,10 +202,14 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
     }
   }, [uploadChunk, startCountdown]);
 
+  // Store latest uploadNextChunk in ref
   useEffect(() => {
     uploadNextChunkRef.current = uploadNextChunk;
   }, [uploadNextChunk]);
 
+  /**
+   * Start test upload
+   */
   const handleStart = useCallback(() => {
     if (chunksRef.current.length === 0) {
       setError('Please select chunk files first');
@@ -190,9 +224,13 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
     uploadNextChunk();
   }, [uploadNextChunk]);
 
+  /**
+   * Pause upload (saves remaining time for resume)
+   */
   const handlePause = useCallback(() => {
     setState(TestState.PAUSED);
 
+    // Clear countdown but save remaining time
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
       countdownIntervalRef.current = null;
@@ -201,19 +239,27 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
     console.log(`Upload paused (${remainingTimeRef.current}s remaining)`);
   }, []);
 
+  /**
+   * Resume upload (continues from where it left off)
+   */
   const handleResume = useCallback(() => {
     console.log(`Upload resumed (continuing with ${remainingTimeRef.current}s remaining)`);
 
+    // If we were in the middle of waiting, continue countdown
     if (remainingTimeRef.current > 0) {
       setState(TestState.WAITING);
       startCountdown(remainingTimeRef.current, () => {
         uploadNextChunkRef.current?.();
       });
     } else {
+      // If not waiting, upload next chunk immediately
       uploadNextChunk();
     }
   }, [uploadNextChunk, startCountdown]);
 
+  /**
+   * Stop upload (resets everything)
+   */
   const handleStop = useCallback(() => {
     setState(TestState.IDLE);
     currentChunkIndexRef.current = 0;
@@ -223,11 +269,13 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
     setSessionId(null);
     setCountdown(0);
 
+    // Clear timers
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
       countdownIntervalRef.current = null;
     }
 
+    // Notify parent to clear session ID
     if (onSessionIdChange) {
       onSessionIdChange(null);
     }
@@ -243,158 +291,153 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
   const hasError = state === TestState.ERROR;
 
   return (
-    <div className="h-full p-4">
-      <div className="h-full flex flex-col space-y-4">
-        <h3 className="text-sm font-semibold text-gray-900 flex-shrink-0">Upload Chunks</h3>
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <h2 className="text-xl font-semibold text-gray-800 mb-4">测试模式 - 上传本地Chunks</h2>
 
-        {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto main-scrollbar space-y-4">
-          {/* File Selection */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-2">
-              Chunk Files
-            </label>
-            <input
-              type="file"
-              multiple
-              accept=".webm,.mp4"
-              onChange={handleFileSelect}
-              disabled={!isIdle}
-              className="block w-full text-xs text-gray-900 border border-gray-300 rounded-md cursor-pointer bg-gray-50 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              chunk_*.webm files
-            </p>
-          </div>
-
-          {/* Chunks Info */}
-          {chunks.length > 0 && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-              <p className="text-xs text-blue-700 font-semibold mb-2">
-                {chunks.length} file{chunks.length > 1 ? 's' : ''}
-              </p>
-              <div className="space-y-1 max-h-40 overflow-y-auto">
-                {chunks.map((chunk) => (
-                  <div
-                    key={chunk.index}
-                    className={`text-xs flex items-center justify-between p-1.5 rounded ${
-                      chunk.index === currentChunkIndex && !isIdle
-                        ? 'bg-blue-100 text-blue-900 font-semibold'
-                        : 'text-blue-600'
-                    }`}
-                  >
-                    <span className="truncate text-xs">
-                      {chunk.index === currentChunkIndex && isUploading && '⏳ '}
-                      {chunk.index < currentChunkIndex && '✓ '}
-                      {chunk.file.name}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Status Display */}
-          {!isIdle && (
-            <div className="p-3 bg-gray-50 border border-gray-200 rounded-md space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-gray-700">Status</span>
-                <span
-                  className={`text-xs font-semibold ${
-                    isUploading
-                      ? 'text-blue-600'
-                      : isWaiting
-                      ? 'text-yellow-600'
-                      : isPaused
-                      ? 'text-gray-600'
-                      : 'text-green-600'
-                  }`}
-                >
-                  {isUploading && '⏳ Uploading'}
-                  {isWaiting && `⏰ Wait ${countdown}s`}
-                  {isPaused && '⏸️ Paused'}
-                  {isCompleted && '✅ Done'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-gray-700">Progress</span>
-                <span className="text-xs text-gray-600">
-                  {currentChunkIndex}/{chunks.length}
-                </span>
-              </div>
-              {sessionId && (
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-gray-700">Session</span>
-                  <span className="text-xs text-gray-600 font-mono">#{sessionId}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Error Display */}
-          {hasError && error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-xs text-red-700">
-                <strong>Error:</strong> {error}
-              </p>
-            </div>
-          )}
-
-          {/* Info Message */}
-          {isIdle && chunks.length === 0 && (
-            <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
-              <p className="text-xs text-gray-700 font-semibold mb-2">
-                Instructions
-              </p>
-              <ol className="text-xs text-gray-600 space-y-1 pl-4 list-decimal">
-                <li>Select chunk files</li>
-                <li>Click "Start"</li>
-                <li>View results →</li>
-              </ol>
-            </div>
-          )}
-        </div>
-
-        {/* Control Buttons - Fixed at bottom */}
-        <div className="flex flex-col space-y-2 pt-4 border-t border-gray-200 flex-shrink-0">
-          {isIdle && (
-            <button
-              onClick={handleStart}
-              disabled={chunks.length === 0}
-              className="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-            >
-              Start Test
-            </button>
-          )}
-
-          {(isUploading || isWaiting) && (
-            <button
-              onClick={handlePause}
-              className="w-full px-4 py-2.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-semibold transition-all duration-150 shadow-sm"
-            >
-              Pause
-            </button>
-          )}
-
-          {isPaused && (
-            <button
-              onClick={handleResume}
-              className="w-full px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition-all duration-150 shadow-sm"
-            >
-              Resume
-            </button>
-          )}
-
-          {!isIdle && (
-            <button
-              onClick={handleStop}
-              className="w-full px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-all duration-150 shadow-sm"
-            >
-              Stop
-            </button>
-          )}
-        </div>
+      {/* File Selection */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          选择 chunk 文件
+        </label>
+        <input
+          type="file"
+          multiple
+          accept=".webm,.mp4"
+          onChange={handleFileSelect}
+          disabled={!isIdle}
+          className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+        />
+        <p className="mt-2 text-xs text-gray-500">
+          选择由 test_video_splitter.py 生成的 chunk_0.webm, chunk_1.webm, ... 文件（可多选）
+        </p>
       </div>
+
+      {/* Chunks Info */}
+      {chunks.length > 0 && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+          <p className="text-sm text-blue-700 font-semibold mb-2">
+            已选择 {chunks.length} 个 chunk 文件
+          </p>
+          <div className="space-y-1">
+            {chunks.map((chunk) => (
+              <div
+                key={chunk.index}
+                className={`text-xs ${
+                  chunk.index === currentChunkIndex && !isIdle
+                    ? 'text-blue-900 font-bold'
+                    : 'text-blue-600'
+                }`}
+              >
+                {chunk.index === currentChunkIndex && isUploading && '⏳ '}
+                {chunk.index < currentChunkIndex && '✓ '}
+                {chunk.file.name} ({(chunk.file.size / (1024 * 1024)).toFixed(2)} MB)
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Status Display */}
+      {!isIdle && (
+        <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-md">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">状态:</span>
+            <span
+              className={`text-sm font-semibold ${
+                isUploading
+                  ? 'text-blue-600'
+                  : isWaiting
+                  ? 'text-yellow-600'
+                  : isPaused
+                  ? 'text-gray-600'
+                  : 'text-green-600'
+              }`}
+            >
+              {isUploading && '⏳ 上传中...'}
+              {isWaiting && `⏰ 等待 ${countdown}秒 后上传下一个chunk`}
+              {isPaused && '⏸️ 已暂停'}
+              {isCompleted && '✅ 全部完成'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">进度:</span>
+            <span className="text-sm text-gray-600">
+              {currentChunkIndex} / {chunks.length} chunks
+            </span>
+          </div>
+          {sessionId && (
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-sm font-medium text-gray-700">Session ID:</span>
+              <span className="text-sm text-gray-600">{sessionId}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Error Display */}
+      {hasError && error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-sm text-red-700">
+            <strong>错误:</strong> {error}
+          </p>
+        </div>
+      )}
+
+      {/* Control Buttons */}
+      <div className="flex space-x-3">
+        {isIdle && (
+          <button
+            onClick={handleStart}
+            disabled={chunks.length === 0}
+            className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            开始测试
+          </button>
+        )}
+
+        {(isUploading || isWaiting) && (
+          <button
+            onClick={handlePause}
+            className="flex-1 px-6 py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-semibold transition-colors"
+          >
+            暂停
+          </button>
+        )}
+
+        {isPaused && (
+          <button
+            onClick={handleResume}
+            className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
+          >
+            继续
+          </button>
+        )}
+
+        {!isIdle && (
+          <button
+            onClick={handleStop}
+            className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors"
+          >
+            停止
+          </button>
+        )}
+      </div>
+
+      {/* Info Message */}
+      {isIdle && chunks.length === 0 && (
+        <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-md">
+          <p className="text-sm text-gray-700">
+            <strong>使用说明:</strong>
+          </p>
+          <ol className="mt-2 text-sm text-gray-600 list-decimal list-inside space-y-1">
+            <li>运行 ai-service/test_video_splitter.py 生成 chunk 文件</li>
+            <li>选择生成的 chunk_*.webm 文件（可多选）</li>
+            <li>点击"开始测试"</li>
+            <li>系统会按顺序上传 chunks，每个间隔 10 秒</li>
+            <li>实时查看右侧的分析结果</li>
+          </ol>
+        </div>
+      )}
     </div>
   );
 }

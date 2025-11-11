@@ -13,7 +13,6 @@ export class VideoRecorderService {
   private mediaRecorder: MediaRecorder | null = null;
   private stream: MediaStream | null = null;
   private startTime: number = 0;
-  private lastChunkTime: number = 0;
   private chunkIntervalId: number | null = null;
   private currentOptions: MediaRecorderOptions | null = null;
   private isStopping: boolean = false; // Track if stopRecording was called
