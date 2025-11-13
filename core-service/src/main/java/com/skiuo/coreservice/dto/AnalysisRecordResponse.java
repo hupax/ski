@@ -30,7 +30,7 @@ public class AnalysisRecordResponse {
                 .sessionId(record.getSessionId())
                 .chunkId(record.getChunkId())
                 .windowIndex(record.getWindowIndex())
-                .content(record.getContent())
+                .content(record.getRefinedContent())  // Return refined content to frontend
                 .startTimeOffset(record.getStartTimeOffset())
                 .endTimeOffset(record.getEndTimeOffset())
                 .createdAt(record.getCreatedAt())

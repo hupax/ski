@@ -31,6 +31,18 @@ service VideoAnalysisService {
   // Step 6: Get video duration
   // Returns the duration of a video file
   rpc GetVideoDuration(GetVideoDurationRequest) returns (GetVideoDurationResponse);
+
+  // Step 7: Generate session title
+  // Generates a concise title (<=10 chars) based on all analysis results
+  rpc GenerateTitle(GenerateTitleRequest) returns (GenerateTitleResponse);
+
+  // Step 8: Refine analysis result
+  // Fixes obvious errors in the analysis result
+  rpc RefineAnalysis(RefineAnalysisRequest) returns (RefineAnalysisResponse);
+
+  // Step 9: Extract user memory
+  // Extracts user habits, knowledge, and behavior patterns from analysis
+  rpc ExtractUserMemory(ExtractUserMemoryRequest) returns (ExtractUserMemoryResponse);
 }
 
 // ========== Process Video Messages ==========
@@ -68,6 +80,7 @@ message AnalysisRequest {
   int32 start_offset = 6;          // Start time offset in seconds
   int32 end_offset = 7;            // End time offset in seconds
   string analysis_mode = 8;        // "full" or "sliding_window" - determines prompt selection
+  string user_memory = 9;          // User memory JSON string (habits, knowledge, behavior patterns)
 }
 
 message AnalysisResponse {
@@ -125,5 +138,57 @@ message GetVideoDurationRequest {
 
 message GetVideoDurationResponse {
   float duration = 1;              // Video duration in seconds
+  string error = 2;                // Error message if any
+}
+
+// ========== Generate Title Messages ==========
+
+message GenerateTitleRequest {
+  string session_id = 1;           // Session ID
+  repeated string analysis_results = 2;  // All refined analysis results
+  string user_memory = 3;          // User memory JSON string
+  string ai_model = 4;             // "qwen" or "gemini"
+}
+
+message GenerateTitleResponse {
+  string title = 1;                // Generated title (<=10 characters)
+  string error = 2;                // Error message if any
+}
+
+// ========== Refine Analysis Messages ==========
+
+message RefineAnalysisRequest {
+  string session_id = 1;           // Session ID
+  int32 window_index = 2;          // Window index
+  string raw_content = 3;          // Raw analysis result to refine
+  VideoMetadata metadata = 4;      // Video metadata (duration, etc.)
+  string user_memory = 5;          // User memory JSON string
+  string ai_model = 6;             // "qwen" or "gemini"
+}
+
+message RefineAnalysisResponse {
+  string refined_content = 1;      // Refined analysis result
+  string error = 2;                // Error message if any
+}
+
+// Video metadata for refinement (extensible)
+message VideoMetadata {
+  double video_duration = 1;       // Total video duration in seconds
+  string resolution = 2;           // Video resolution (e.g., "1920x1080") - reserved
+  string storage_type = 3;         // Storage type (e.g., "minio", "oss", "cos") - reserved
+  map<string, string> custom = 4; // Custom metadata key-value pairs
+}
+
+// ========== Extract User Memory Messages ==========
+
+message ExtractUserMemoryRequest {
+  string session_id = 1;           // Session ID
+  repeated string analysis_results = 2;  // All refined analysis results
+  string current_memory = 3;       // Current user memory JSON string
+  string ai_model = 4;             // "qwen" or "gemini"
+}
+
+message ExtractUserMemoryResponse {
+  string new_memory = 1;           // Extracted new memory data (JSON string)
   string error = 2;                // Error message if any
 }

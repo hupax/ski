@@ -29,8 +29,11 @@ public class AnalysisRecord {
     @Column(name = "window_index")
     private Integer windowIndex;
 
-    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
-    private String content;
+    @Column(name = "raw_content", columnDefinition = "TEXT")
+    private String rawContent;  // AI raw analysis result
+
+    @Column(name = "refined_content", nullable = false, columnDefinition = "TEXT")
+    private String refinedContent;  // AI refined analysis result (displayed to frontend)
 
     @Column(name = "start_time_offset")
     private Double startTimeOffset;

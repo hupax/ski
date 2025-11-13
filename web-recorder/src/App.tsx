@@ -1,188 +1,233 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Layout } from './components/layout';
-import { ConfigSidebar, SessionsSidebar, RecordingSidebar } from './components/sidebars';
-import { AnalysisDisplay } from './components/AnalysisDisplay';
-import { TestUploader } from './components/TestUploader';
-import { PictureInPictureVideo } from './components/PictureInPictureVideo';
-import { useMediaRecorder } from './hooks/useMediaRecorder';
-import { useWebSocket } from './hooks/useWebSocket';
-import { DEFAULT_CONFIG, updateChunkDuration } from './config/constants';
-import { getServerConfig } from './services/apiClient';
-import type { RecordingConfig } from './types';
-import { RecordingState, AppMode } from './types';
+import { useEffect, useState } from 'react'
+import {
+  MainLayout,
+  RecordingModeSelector,
+  AnalysisDisplay,
+  PictureInPictureVideo,
+} from './components'
+import { TestPage } from './components/TestPage'
+import {
+  useUIStore,
+  useSessionStore,
+  useRecordingStore,
+  useConfigStore,
+  useAnalysisStore,
+  useAuthStore,
+} from './stores'
+import { useMediaRecorderWithStore } from './hooks/useMediaRecorderWithStore'
+import { useWebSocketWithStore } from './hooks/useWebSocketWithStore'
+import { getServerConfig } from './services/apiClient'
+import { refreshTokenIfNeeded } from './services/authInterceptor'
+import { AnalysisMode, RecordingState } from './types'
 
 function App() {
-  // Configuration state
-  const [config, setConfig] = useState<RecordingConfig>(DEFAULT_CONFIG);
-  const [chunkDuration, setChunkDuration] = useState<number>(35); // seconds
-  const [appMode, setAppMode] = useState<AppMode>(AppMode.RECORD);
+  const { currentView, setCurrentView } = useUIStore()
+  const { currentSessionId, fetchSessions } = useSessionStore()
+  const { state: recordingState, stream, sessionId: recordingSessionId } = useRecordingStore()
+  const { setChunkDuration } = useConfigStore()
+  const { results, isConnected } = useAnalysisStore()
+  const setAuth = useAuthStore((state) => state.setAuth)
 
-  // Session ID state (unified for both record and test modes)
-  const [testModeSessionId, setTestModeSessionId] = useState<number | null>(null);
+  // Recording mode selection state (from RecordingModeSelector)
+  const [, setSelectedMode] = useState<'upload' | 'full' | 'sliding_window' | null>(null)
 
-  // Fetch server config on mount
-  useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        const serverConfig = await getServerConfig();
-        updateChunkDuration(serverConfig.recommendedChunkDuration);
-        setChunkDuration(serverConfig.recommendedChunkDuration);
-        console.log(
-          `Initialized with server config: window=${serverConfig.windowSize}s, step=${serverConfig.windowStep}s, chunk=${serverConfig.recommendedChunkDuration}s`
-        );
-      } catch (error) {
-        console.error('Failed to fetch server config, using defaults:', error);
-      }
-    };
+  // Upload mode session ID
+  const [uploadSessionId, setUploadSessionId] = useState<number | null>(null)
 
-    fetchConfig();
-  }, []);
+  // Get config from store
+  const config = useConfigStore()
 
-  // MediaRecorder hook (for RECORD mode)
+  // Use media recorder hook with stores
   const {
-    state,
-    stream,
-    error,
-    sessionId: recordModeSessionId,
-    chunkIndex,
     startRecording,
     stopRecording,
     pauseRecording,
     resumeRecording,
-  } = useMediaRecorder(config);
+  } = useMediaRecorderWithStore(config)
 
-  // Use appropriate sessionId based on app mode
-  const activeSessionId =
-    appMode === AppMode.RECORD ? recordModeSessionId : testModeSessionId;
+  // Active session ID (either from recording, upload, or selected session)
+  const activeSessionId = recordingSessionId || uploadSessionId || currentSessionId
 
-  // WebSocket hook for receiving analysis results
-  const { isConnected, results } = useWebSocket(activeSessionId);
+  // Use WebSocket hook with stores
+  useWebSocketWithStore(activeSessionId)
 
-  // Disable config changes while recording
-  const isConfigDisabled =
-    state !== RecordingState.IDLE && state !== RecordingState.STOPPED;
-
-  // Handle test mode session ID changes
-  const handleTestModeSessionIdChange = useCallback(
-    (sessionId: number | null) => {
-      setTestModeSessionId(sessionId);
-      console.log('Test mode session ID updated:', sessionId);
-    },
-    []
-  );
-
-  // Clear test mode session when switching modes
+  // Handle OAuth callback
   useEffect(() => {
-    if (appMode === AppMode.RECORD) {
-      setTestModeSessionId(null);
+    const urlParams = new URLSearchParams(window.location.search)
+    const accessToken = urlParams.get('access_token')
+    const refreshToken = urlParams.get('refresh_token')
+    const error = urlParams.get('error')
+
+    if (error) {
+      console.error('OAuth error:', error)
+      alert(`Authentication failed: ${error}`)
+      window.history.replaceState({}, '', '/')
+      return
     }
-  }, [appMode]);
+
+    if (accessToken && refreshToken) {
+      try {
+        // Decode JWT to get user info
+        const payload = JSON.parse(atob(accessToken.split('.')[1]))
+        const userInfo = {
+          id: payload.userId,
+          email: payload.email,
+          username: payload.username || payload.sub,
+          avatarUrl: payload.avatarUrl || null,
+        }
+
+        setAuth(accessToken, refreshToken, userInfo)
+        console.log('OAuth login successful:', userInfo.email)
+
+        // Clean URL
+        window.history.replaceState({}, '', '/')
+      } catch (e) {
+        console.error('Failed to parse OAuth token:', e)
+        alert('Authentication failed')
+        window.history.replaceState({}, '', '/')
+      }
+    }
+  }, [setAuth])
+
+  // Debug: Log active session ID changes
+  useEffect(() => {
+    console.log('[App] Active session ID:', activeSessionId)
+  }, [activeSessionId])
+
+  // Proactively refresh token if needed (check every minute)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshTokenIfNeeded()
+    }, 60000) // Check every minute
+
+    // Initial check
+    refreshTokenIfNeeded()
+
+    return () => clearInterval(interval)
+  }, [])
+
+  // Fetch server config and sessions on mount
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        // Fetch server config
+        const serverConfig = await getServerConfig()
+        setChunkDuration(serverConfig.recommendedChunkDuration)
+        console.log(
+          `Initialized with server config: window=${serverConfig.windowSize}s, step=${serverConfig.windowStep}s, chunk=${serverConfig.recommendedChunkDuration}s`
+        )
+      } catch (error) {
+        console.error('Failed to fetch server config, using defaults:', error)
+      }
+
+      // Fetch sessions
+      await fetchSessions()
+    }
+
+    initializeApp()
+  }, [setChunkDuration, fetchSessions])
+
+  // Handle "New Recording" button click
+  const handleNewRecording = () => {
+    setCurrentView('recording-mode-selection')
+  }
+
+  // Handle "Test" button click
+  const handleTest = () => {
+    setCurrentView('test')
+  }
+
+  // Handle mode selection
+  const handleModeSelect = async (mode: 'upload' | 'full' | 'sliding_window') => {
+    setSelectedMode(mode)
+
+    // Update config based on mode
+    if (mode === 'full') {
+      config.setAnalysisMode(AnalysisMode.FULL)
+    } else if (mode === 'sliding_window') {
+      config.setAnalysisMode(AnalysisMode.SLIDING_WINDOW)
+    }
+
+    // For upload mode, show upload interface
+    if (mode === 'upload') {
+      setCurrentView('upload')
+      return
+    }
+
+    // For recording modes, start recording
+    try {
+      await startRecording()
+      setCurrentView('recording')
+    } catch (error) {
+      console.error('Failed to start recording:', error)
+    }
+  }
+
+  // Handle upload session ID change
+  const handleUploadSessionChange = (sessionId: number | null) => {
+    console.log('[App] Upload session ID changed:', sessionId)
+    setUploadSessionId(sessionId)
+    if (sessionId) {
+      useSessionStore.getState().setCurrentSessionId(sessionId)
+      // Clear previous results when starting new test
+      useAnalysisStore.getState().clearResults()
+    }
+  }
+
+  // Show Picture-in-Picture when recording
+  const showPiP = recordingState === RecordingState.RECORDING || recordingState === RecordingState.PAUSED
 
   return (
     <>
-      {/* Picture-in-Picture Video (only in RECORD mode) */}
-      {appMode === AppMode.RECORD && (
+      {/* Picture-in-Picture Video */}
+      {showPiP && stream && (
         <PictureInPictureVideo
           stream={stream}
-          isRecording={state === RecordingState.RECORDING}
+          isRecording={recordingState === RecordingState.RECORDING}
+          isPaused={recordingState === RecordingState.PAUSED}
+          onStop={stopRecording}
+          onPause={pauseRecording}
+          onResume={resumeRecording}
         />
       )}
 
-      <Layout
-        // Config Sidebar Content
-        configContent={
-        <div className="flex flex-col h-full">
-          <div className="flex-shrink-0">
-            <ConfigSidebar
-              config={config}
-              onChange={setConfig}
-              disabled={isConfigDisabled}
-              appMode={appMode}
-              onAppModeChange={setAppMode}
-            />
-          </div>
-
-          {/* Test Mode Uploader (below config) */}
-          {appMode === AppMode.TEST && (
-            <div className="flex-1 overflow-y-auto border-t border-gray-200">
-              <TestUploader
-                config={config}
-                chunkDuration={chunkDuration}
-                onSessionIdChange={handleTestModeSessionIdChange}
+      {/* Main Layout */}
+      <MainLayout onNewRecording={handleNewRecording} onTest={handleTest}>
+        {/* Content based on current view */}
+        {currentView === 'recording-mode-selection' ? (
+          <RecordingModeSelector onModeSelect={handleModeSelect} />
+        ) : currentView === 'upload' ? (
+          <div className="h-full flex">
+            {/* Left: Upload Interface (from mode selection) */}
+            <div className="w-96 border-r border-gray-200 flex-shrink-0">
+              <div className="h-full p-6 flex items-center justify-center text-gray-500">
+                Upload video file interface - TODO
+              </div>
+            </div>
+            {/* Right: Analysis Results */}
+            <div className="flex-1">
+              <AnalysisDisplay
+                results={results}
+                isConnected={isConnected}
+                sessionId={activeSessionId}
               />
             </div>
-          )}
-        </div>
-      }
-      // Sessions Sidebar Content
-      sessionsContent={
-        <SessionsSidebar
-          sessions={[]}
-          onSessionSelect={(id) => console.log('Selected session:', id)}
-          onSessionDelete={(id) => console.log('Delete session:', id)}
-        />
-      }
-      // Recording Sidebar Content
-      recordingContent={
-        <RecordingSidebar
-          state={state}
-          sessionId={activeSessionId}
-          chunkIndex={chunkIndex}
-          onStart={startRecording}
-          onPause={pauseRecording}
-          onResume={resumeRecording}
-          onStop={stopRecording}
-        />
-      }
-      // Main Content Area
-      mainContent={
-        <div className="h-full flex flex-col bg-white">
-          {/* Header Bar */}
-          <div className="border-b border-gray-200 px-6 py-4 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-semibold text-gray-900">
-                  SKI Video Analysis
-                </h1>
-                <p className="text-sm text-gray-500 mt-1">
-                  Record video and get AI-powered real-time transcription
-                </p>
-              </div>
-
-              {/* Status Badge */}
-              <div className="flex items-center space-x-3">
-                {error && (
-                  <div className="text-sm text-red-600 bg-red-50 px-3 py-1.5 rounded-lg">
-                    ❌ {error}
-                  </div>
-                )}
-                <div className="flex items-center space-x-2 text-sm">
-                  <div
-                    className={`w-2 h-2 rounded-full ${
-                      isConnected ? 'bg-green-500' : 'bg-gray-400'
-                    }`}
-                  />
-                  <span className="text-gray-600">
-                    {isConnected ? 'WebSocket Connected' : 'WebSocket Disconnected'}
-                  </span>
-                </div>
-              </div>
-            </div>
           </div>
-
-          {/* Content Area - Always shows AnalysisDisplay */}
-          <div className="flex-1 overflow-hidden p-6">
-            <AnalysisDisplay
-              results={results}
-              isConnected={isConnected}
-              sessionId={activeSessionId}
-            />
-          </div>
-        </div>
-      }
-      />
+        ) : currentView === 'test' ? (
+          <TestPage
+            defaultChunkDuration={config.chunkDuration}
+            onSessionIdChange={handleUploadSessionChange}
+          />
+        ) : (
+          <AnalysisDisplay
+            results={results}
+            isConnected={isConnected}
+            sessionId={activeSessionId}
+          />
+        )}
+      </MainLayout>
     </>
-  );
+  )
 }
 
-export default App;
+export default App

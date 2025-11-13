@@ -68,7 +68,6 @@ export interface RecordingConfig {
   analysisMode: AnalysisMode;
   keepVideo: boolean;
   storageType: StorageType;
-  userId: number;
 }
 
 // ========== API Request/Response Types ==========
@@ -76,7 +75,6 @@ export interface RecordingConfig {
 export interface VideoUploadRequest {
   file: Blob;
   sessionId?: number;
-  userId: number;
   chunkIndex: number;
   aiModel: string;
   analysisMode: string;
@@ -156,3 +154,7 @@ export interface ChunkFile {
   index: number;
   duration: number; // seconds
 }
+
+// ========== Auth Types ==========
+
+export * from './auth'

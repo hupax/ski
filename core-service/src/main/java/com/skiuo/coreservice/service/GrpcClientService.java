@@ -86,7 +86,7 @@ public class GrpcClientService {
                                                     String videoUrl, String aiModel,
                                                     String context, Double startOffset,
                                                     Double endOffset, String analysisMode,
-                                                    Consumer<String> onChunk) {
+                                                    String userMemory, Consumer<String> onChunk) {
         CompletableFuture<String> future = new CompletableFuture<>();
         StringBuilder fullContent = new StringBuilder();
 
@@ -100,6 +100,7 @@ public class GrpcClientService {
                     .setStartOffset(startOffset.intValue())
                     .setEndOffset(endOffset.intValue())
                     .setAnalysisMode(analysisMode)
+                    .setUserMemory(userMemory != null ? userMemory : "")
                     .build();
 
             log.info("Calling AnalyzeVideo gRPC: sessionId={}, windowIndex={}, model={}",
@@ -157,10 +158,10 @@ public class GrpcClientService {
     public String analyzeVideoSync(String sessionId, int windowIndex, String videoUrl,
                                     String aiModel, String context, Double startOffset,
                                     Double endOffset, String analysisMode,
-                                    Consumer<String> onChunk) {
+                                    String userMemory, Consumer<String> onChunk) {
         try {
             return analyzeVideo(sessionId, windowIndex, videoUrl, aiModel, context,
-                    startOffset, endOffset, analysisMode, onChunk).get(5, TimeUnit.MINUTES);
+                    startOffset, endOffset, analysisMode, userMemory, onChunk).get(5, TimeUnit.MINUTES);
         } catch (Exception e) {
             log.error("AnalyzeVideo sync failed: {}", e.getMessage());
             throw new GrpcException("AnalyzeVideo sync failed", e);
@@ -293,6 +294,131 @@ public class GrpcClientService {
         } catch (Exception e) {
             log.error("Failed to call ConcatVideos gRPC: {}", e.getMessage());
             throw new GrpcException("Failed to call ConcatVideos gRPC", e);
+        }
+    }
+
+    /**
+     * Generate session title based on analysis results
+     *
+     * @param sessionId Session ID
+     * @param analysisResults List of refined analysis results
+     * @param userMemory User memory JSON string
+     * @param aiModel AI model name
+     * @return Generated title
+     */
+    public String generateTitle(String sessionId, List<String> analysisResults,
+                                String userMemory, String aiModel) {
+        try {
+            log.info("Calling GenerateTitle gRPC: session={}, model={}, results_count={}",
+                    sessionId, aiModel, analysisResults.size());
+
+            GenerateTitleRequest request = GenerateTitleRequest.newBuilder()
+                    .setSessionId(sessionId)
+                    .addAllAnalysisResults(analysisResults)
+                    .setUserMemory(userMemory != null ? userMemory : "")
+                    .setAiModel(aiModel)
+                    .build();
+
+            GenerateTitleResponse response = blockingStub
+                    .withDeadlineAfter(180, TimeUnit.SECONDS)
+                    .generateTitle(request);
+
+            if (response.getError() != null && !response.getError().isEmpty()) {
+                throw new GrpcException("GenerateTitle failed: " + response.getError());
+            }
+
+            log.info("GenerateTitle completed: title={}", response.getTitle());
+            return response.getTitle();
+
+        } catch (Exception e) {
+            log.error("Failed to call GenerateTitle gRPC: {}", e.getMessage());
+            throw new GrpcException("Failed to call GenerateTitle gRPC", e);
+        }
+    }
+
+    /**
+     * Refine analysis result by fixing obvious errors
+     *
+     * @param sessionId Session ID
+     * @param windowIndex Window index
+     * @param rawContent Raw analysis result
+     * @param videoDuration Total video duration
+     * @param userMemory User memory JSON string
+     * @param aiModel AI model name
+     * @return Refined analysis result
+     */
+    public String refineAnalysis(String sessionId, int windowIndex, String rawContent,
+                                 double videoDuration, String userMemory, String aiModel) {
+        try {
+            log.info("Calling RefineAnalysis gRPC: session={}, window={}, model={}",
+                    sessionId, windowIndex, aiModel);
+
+            VideoMetadata metadata = VideoMetadata.newBuilder()
+                    .setVideoDuration(videoDuration)
+                    .build();
+
+            RefineAnalysisRequest request = RefineAnalysisRequest.newBuilder()
+                    .setSessionId(sessionId)
+                    .setWindowIndex(windowIndex)
+                    .setRawContent(rawContent)
+                    .setMetadata(metadata)
+                    .setUserMemory(userMemory != null ? userMemory : "")
+                    .setAiModel(aiModel)
+                    .build();
+
+            RefineAnalysisResponse response = blockingStub
+                    .withDeadlineAfter(180, TimeUnit.SECONDS)
+                    .refineAnalysis(request);
+
+            if (response.getError() != null && !response.getError().isEmpty()) {
+                throw new GrpcException("RefineAnalysis failed: " + response.getError());
+            }
+
+            log.info("RefineAnalysis completed: length={}", response.getRefinedContent().length());
+            return response.getRefinedContent();
+
+        } catch (Exception e) {
+            log.error("Failed to call RefineAnalysis gRPC: {}", e.getMessage());
+            throw new GrpcException("Failed to call RefineAnalysis gRPC", e);
+        }
+    }
+
+    /**
+     * Extract user memory from analysis results
+     *
+     * @param sessionId Session ID
+     * @param analysisResults List of refined analysis results
+     * @param currentMemory Current user memory JSON string
+     * @param aiModel AI model name
+     * @return Extracted new memory JSON string
+     */
+    public String extractUserMemory(String sessionId, List<String> analysisResults,
+                                    String currentMemory, String aiModel) {
+        try {
+            log.info("Calling ExtractUserMemory gRPC: session={}, model={}, results_count={}",
+                    sessionId, aiModel, analysisResults.size());
+
+            ExtractUserMemoryRequest request = ExtractUserMemoryRequest.newBuilder()
+                    .setSessionId(sessionId)
+                    .addAllAnalysisResults(analysisResults)
+                    .setCurrentMemory(currentMemory != null ? currentMemory : "{}")
+                    .setAiModel(aiModel)
+                    .build();
+
+            ExtractUserMemoryResponse response = blockingStub
+                    .withDeadlineAfter(180, TimeUnit.SECONDS)
+                    .extractUserMemory(request);
+
+            if (response.getError() != null && !response.getError().isEmpty()) {
+                throw new GrpcException("ExtractUserMemory failed: " + response.getError());
+            }
+
+            log.info("ExtractUserMemory completed: length={}", response.getNewMemory().length());
+            return response.getNewMemory();
+
+        } catch (Exception e) {
+            log.error("Failed to call ExtractUserMemory gRPC: {}", e.getMessage());
+            throw new GrpcException("Failed to call ExtractUserMemory gRPC", e);
         }
     }
 }

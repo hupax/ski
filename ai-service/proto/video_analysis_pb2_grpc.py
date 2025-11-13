@@ -65,6 +65,21 @@ class VideoAnalysisServiceStub(object):
                 request_serializer=video__analysis__pb2.GetVideoDurationRequest.SerializeToString,
                 response_deserializer=video__analysis__pb2.GetVideoDurationResponse.FromString,
                 _registered_method=True)
+        self.GenerateTitle = channel.unary_unary(
+                '/videoanalysis.VideoAnalysisService/GenerateTitle',
+                request_serializer=video__analysis__pb2.GenerateTitleRequest.SerializeToString,
+                response_deserializer=video__analysis__pb2.GenerateTitleResponse.FromString,
+                _registered_method=True)
+        self.RefineAnalysis = channel.unary_unary(
+                '/videoanalysis.VideoAnalysisService/RefineAnalysis',
+                request_serializer=video__analysis__pb2.RefineAnalysisRequest.SerializeToString,
+                response_deserializer=video__analysis__pb2.RefineAnalysisResponse.FromString,
+                _registered_method=True)
+        self.ExtractUserMemory = channel.unary_unary(
+                '/videoanalysis.VideoAnalysisService/ExtractUserMemory',
+                request_serializer=video__analysis__pb2.ExtractUserMemoryRequest.SerializeToString,
+                response_deserializer=video__analysis__pb2.ExtractUserMemoryResponse.FromString,
+                _registered_method=True)
 
 
 class VideoAnalysisServiceServicer(object):
@@ -119,6 +134,30 @@ class VideoAnalysisServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GenerateTitle(self, request, context):
+        """Step 7: Generate session title
+        Generates a concise title (<=10 chars) based on all analysis results
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def RefineAnalysis(self, request, context):
+        """Step 8: Refine analysis result
+        Fixes obvious errors in the analysis result
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ExtractUserMemory(self, request, context):
+        """Step 9: Extract user memory
+        Extracts user habits, knowledge, and behavior patterns from analysis
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_VideoAnalysisServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -151,6 +190,21 @@ def add_VideoAnalysisServiceServicer_to_server(servicer, server):
                     servicer.GetVideoDuration,
                     request_deserializer=video__analysis__pb2.GetVideoDurationRequest.FromString,
                     response_serializer=video__analysis__pb2.GetVideoDurationResponse.SerializeToString,
+            ),
+            'GenerateTitle': grpc.unary_unary_rpc_method_handler(
+                    servicer.GenerateTitle,
+                    request_deserializer=video__analysis__pb2.GenerateTitleRequest.FromString,
+                    response_serializer=video__analysis__pb2.GenerateTitleResponse.SerializeToString,
+            ),
+            'RefineAnalysis': grpc.unary_unary_rpc_method_handler(
+                    servicer.RefineAnalysis,
+                    request_deserializer=video__analysis__pb2.RefineAnalysisRequest.FromString,
+                    response_serializer=video__analysis__pb2.RefineAnalysisResponse.SerializeToString,
+            ),
+            'ExtractUserMemory': grpc.unary_unary_rpc_method_handler(
+                    servicer.ExtractUserMemory,
+                    request_deserializer=video__analysis__pb2.ExtractUserMemoryRequest.FromString,
+                    response_serializer=video__analysis__pb2.ExtractUserMemoryResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -316,6 +370,87 @@ class VideoAnalysisService(object):
             '/videoanalysis.VideoAnalysisService/GetVideoDuration',
             video__analysis__pb2.GetVideoDurationRequest.SerializeToString,
             video__analysis__pb2.GetVideoDurationResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GenerateTitle(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/videoanalysis.VideoAnalysisService/GenerateTitle',
+            video__analysis__pb2.GenerateTitleRequest.SerializeToString,
+            video__analysis__pb2.GenerateTitleResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RefineAnalysis(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/videoanalysis.VideoAnalysisService/RefineAnalysis',
+            video__analysis__pb2.RefineAnalysisRequest.SerializeToString,
+            video__analysis__pb2.RefineAnalysisResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ExtractUserMemory(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/videoanalysis.VideoAnalysisService/ExtractUserMemory',
+            video__analysis__pb2.ExtractUserMemoryRequest.SerializeToString,
+            video__analysis__pb2.ExtractUserMemoryResponse.FromString,
             options,
             channel_credentials,
             insecure,

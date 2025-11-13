@@ -1,0 +1,78 @@
+ API: session=3, window=0, videoUrl=https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/3/full_video.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763010752%3B1763014352%26q-key-time%3D1763010752%3B1763014352%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D3eb125d7e0ea18f4fa2a1ea782bb7f0ec4935f5f
+2025-11-13 13:13:26 - models.qwen_analyzer - INFO - Qwen analysis completed: session=3, window=0, length=4084
+2025-11-13 13:13:26 - grpc_server - INFO - AnalyzeVideo completed: session=3, window=0, chunks=1755
+2025-11-13 13:13:26 - grpc_server - INFO - RefineAnalysis called: session=3, window=0, model=qwen
+2025-11-13 13:13:26 - models.qwen_analyzer - INFO - Initialized QwenAnalyzer with VL model: qwen-vl-max, Text model: qwen-max
+2025-11-13 13:13:26 - models.qwen_analyzer - INFO - Prompt config: language=zh, scenario=general
+2025-11-13 13:13:26 - models.factory - INFO - Created Qwen analyzer
+2025-11-13 13:13:26 - models.qwen_analyzer - INFO - Refining analysis with Qwen
+2025-11-13 13:14:35 - models.qwen_analyzer - INFO - Refined content length: 4060
+2025-11-13 13:14:35 - grpc_server - INFO - RefineAnalysis completed: length=4060
+2025-11-13 13:14:36 - grpc_server - INFO - GenerateTitle called: session=3, model=qwen, results_count=1
+2025-11-13 13:14:36 - models.qwen_analyzer - INFO - Initialized QwenAnalyzer with VL model: qwen-vl-max, Text model: qwen-max
+2025-11-13 13:14:36 - models.qwen_analyzer - INFO - Prompt config: language=zh, scenario=general
+2025-11-13 13:14:36 - models.factory - INFO - Created Qwen analyzer
+2025-11-13 13:14:36 - models.qwen_analyzer - INFO - Generating title with Qwen
+2025-11-13 13:14:37 - models.qwen_analyzer - INFO - Generated title: LeetCode两数之和
+2025-11-13 13:14:37 - grpc_server - INFO - GenerateTitle completed: title=LeetCode两数之和
+2025-11-13 13:14:37 - grpc_server - INFO - ExtractUserMemory called: session=3, model=qwen, results_count=1
+2025-11-13 13:14:37 - models.qwen_analyzer - INFO - Initialized QwenAnalyzer with VL model: qwen-vl-max, Text model: qwen-max
+2025-11-13 13:14:37 - models.qwen_analyzer - INFO - Prompt config: language=zh, scenario=general
+2025-11-13 13:14:37 - models.factory - INFO - Created Qwen analyzer
+2025-11-13 13:14:37 - models.qwen_analyzer - INFO - Extracting user memory with Qwen
+2025-11-13 13:14:45 - models.qwen_analyzer - WARNING - Invalid JSON returned, using empty structure: Expecting value: line 1 column 1 (char 0)
+2025-11-13 13:14:45 - grpc_server - INFO - ExtractUserMemory completed: length=56
+
+
+2025-11-13 13:14:37 - Generated session title: LeetCode两数之和
+2025-11-13 13:14:37 - Extracting user memory for session 3
+2025-11-13 13:14:37 - Calling ExtractUserMemory gRPC: session=3, model=qwen, results_count=1
+2025-11-13 13:14:45 - ExtractUserMemory completed: length=56
+2025-11-13 13:14:45 - Failed to extract/update user memory for session 3: Error attempting to apply AttributeConverter: class java.lang.String cannot be cast to class java.util.Map (java.lang.String and java.util.Map are in module java.base of loader 'bootstrap')
+2025-11-13 13:14:45 - Session completion finished: sessionId=3, title=LeetCode两数之和
+
+
+    /**
+     * User memory data stored as JSON
+     * Structure: {
+     *   "habits": { "programming_languages": [...], "tools": [...], "coding_style": [...] },
+     *   "knowledge": { "expertise": [...], "learning": [...], "gaps": [...] },
+     *   "behavior_patterns": { "workflows": [...], "problem_solving": [...], "project_types": [...] }
+     * }
+     */
+    @Column(name = "memory_data", columnDefinition = "jsonb", nullable = false)
+    @Convert(converter = JsonConverter.class)
+    private String memoryData;
+package com.skiuo.coreservice.converter;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.Converter;
+
+import java.util.Map;
+
+@Converter(autoApply = true)
+public class JsonConverter implements AttributeConverter<Map<String, Object>, String> {
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Override
+    public String convertToDatabaseColumn(Map<String, Object> attribute) {
+        try {
+            return objectMapper.writeValueAsString(attribute);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Could not convert Map to JSON string", e);
+        }
+    }
+
+    @Override
+    public Map<String, Object> convertToEntityAttribute(String dbData) {
+        try {
+            return objectMapper.readValue(dbData, new TypeReference<>() {
+            });
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Could not convert JSON string to Map", e);
+        }
+    }
+}

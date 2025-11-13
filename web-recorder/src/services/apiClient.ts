@@ -6,6 +6,14 @@ import type {
   AnalysisRecordResponse,
   ServerConfigResponse,
 } from '../types';
+import { useAuthStore } from '../stores/authStore';
+
+/**
+ * Get auth token from store
+ */
+function getAuthToken(): string | null {
+  return useAuthStore.getState().accessToken;
+}
 
 /**
  * Upload video chunk to core-service
@@ -16,7 +24,6 @@ export async function uploadVideoChunk(
   const formData = new FormData();
 
   formData.append('file', request.file, `chunk_${request.chunkIndex}.webm`);
-  formData.append('userId', request.userId.toString());
   formData.append('chunkIndex', request.chunkIndex.toString());
   formData.append('aiModel', request.aiModel);
   formData.append('analysisMode', request.analysisMode);
@@ -35,9 +42,17 @@ export async function uploadVideoChunk(
     formData.append('isLastChunk', request.isLastChunk.toString());
   }
 
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error('Not authenticated. Please log in first.');
+  }
+
   try {
     const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.UPLOAD_VIDEO}`, {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
       body: formData,
     });
 

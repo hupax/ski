@@ -61,6 +61,7 @@ FIRST_WINDOW_PROMPT_ZH = """你正在分析一段视频片段。这是视频的�
 {core_requirements}
 
 {focus_points}
+{user_memory_context}
 
 输出格式：
 - **直接返回Markdown格式的文本**（可以使用标题、列表、加粗等Markdown语法）
@@ -78,6 +79,7 @@ FIRST_WINDOW_PROMPT_EN = """You are analyzing a video segment. This is the begin
 {core_requirements}
 
 {focus_points}
+{user_memory_context}
 
 Output Format:
 - **Return Markdown formatted text directly** (you can use headings, lists, bold, etc.)
@@ -96,6 +98,7 @@ SUBSEQUENT_WINDOW_PROMPT_ZH = """你正在继续分析视频的下一个片段�
 {core_requirements}
 
 {focus_points}
+{user_memory_context}
 
 **前置上下文**（之前已分析的内容）：
 {context}
@@ -123,6 +126,7 @@ SUBSEQUENT_WINDOW_PROMPT_EN = """You are continuing to analyze the next segment 
 {core_requirements}
 
 {focus_points}
+{user_memory_context}
 
 **Previous Context** (previously analyzed content):
 {context}
@@ -148,6 +152,7 @@ Please continue analyzing this video:"""
 FULL_VIDEO_PROMPT_ZH = """描述这个视频,我想通过你帮我记录这一视频.
 要求:
     1. 只记录事实,不要因为输出格式而想当然的记录视频没有的内容.
+{user_memory_context}
 
 输出格式：
 - **直接返回Markdown格式的文本**（可以使用标题、列表、加粗等Markdown语法）
@@ -310,6 +315,7 @@ FULL_VIDEO_PROMPT_EN = """You are analyzing a complete video.
 {core_requirements}
 
 {focus_points}
+{user_memory_context}
 
 **Analysis Strategy**:
 - Watch the video completely from beginning to end

@@ -50,6 +50,12 @@ public class Session {
     @Column(name = "current_video_length")
     private Double currentVideoLength;  // Current total length of master video (seconds), initial: 0.0
 
+    @Column(name = "title", length = 50)
+    private String title;  // AI-generated session title (<=10 chars)
+
+    @Column(name = "video_duration")
+    private Double videoDuration;  // Total video duration from FFmpeg (seconds)
+
     @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
 

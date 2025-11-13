@@ -52,7 +52,6 @@ export function updateChunkDuration(recommendedDuration: number): void {
 // ========== Default User Configuration ==========
 
 export const DEFAULT_CONFIG: RecordingConfig = {
-  userId: 1, // Fixed user ID for MVP
   aiModel: AIModel.QWEN,
   analysisMode: AnalysisMode.SLIDING_WINDOW,
   keepVideo: false,

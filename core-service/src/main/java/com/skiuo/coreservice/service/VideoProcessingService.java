@@ -22,7 +22,7 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 @RequiredArgsConstructor
 public class VideoProcessingService {
-    
+
     private final VideoConfig videoConfig;
     private final GrpcClientService grpcClientService;
     private final StorageServiceFactory storageServiceFactory;
@@ -31,6 +31,8 @@ public class VideoProcessingService {
     private final VideoUploadService videoUploadService;
     private final VideoChunkRepository videoChunkRepository;
     private final com.skiuo.coreservice.repository.SessionRepository sessionRepository;
+    private final UserMemoryService userMemoryService;
+    private final SessionCompletionService sessionCompletionService;
     
     
     /**
@@ -97,6 +99,9 @@ public class VideoProcessingService {
             // Mark session as completed
             videoUploadService.updateSessionStatus(session.getId(), Session.SessionStatus.COMPLETED);
             log.info("FULL mode: session {} marked as COMPLETED", session.getId());
+
+            // Trigger session completion (title + memory) asynchronously
+            sessionCompletionService.completeSession(session.getId());
         }
     }
     
@@ -121,9 +126,12 @@ public class VideoProcessingService {
             // 2. Generate public URL
             String videoUrl = storageService.generatePublicUrl(storagePath);
             log.info("🎥 Generated URL for full video: {}", videoUrl);
-            
-            // 3. Analyze complete video
-            String result = grpcClientService.analyzeVideoSync(
+
+            // 3. Get user memory
+            String userMemory = userMemoryService.getUserMemory(session.getUserId());
+
+            // 4. Analyze complete video (raw result)
+            String rawResult = grpcClientService.analyzeVideoSync(
                     session.getId().toString(),
                     0,  // window index 0 for full analysis
                     videoUrl,
@@ -132,23 +140,42 @@ public class VideoProcessingService {
                     0.0,
                     session.getCurrentVideoLength(),
                     "full",  // IMPORTANT: pass "full" mode to use correct prompt
-                    content -> analysisService.sendStreamingResult(session.getId(), 0, content)
+                    userMemory,  // Pass user memory
+                    content -> {} // Don't stream raw result
             );
-            
-            // 4. Save analysis result
-            analysisService.saveAnalysisRecord(
+
+            log.info("Full video raw analysis completed: length={}", rawResult.length());
+
+            // 5. Refine analysis result
+            String refinedResult = grpcClientService.refineAnalysis(
+                    session.getId().toString(),
+                    0,
+                    rawResult,
+                    session.getCurrentVideoLength(),
+                    userMemory,
+                    session.getAiModel()
+            );
+
+            log.info("Full video analysis refined: length={}", refinedResult.length());
+
+            // 6. Stream refined result to frontend
+            analysisService.sendStreamingResult(session.getId(), 0, refinedResult);
+
+            // 7. Save analysis result
+            analysisService.saveAnalysisRecordWithRaw(
                     session.getId(),
                     null,
                     0,
-                    result,
+                    rawResult,
+                    refinedResult,
                     0.0,
                     session.getCurrentVideoLength(),
                     storagePath
             );
-            
-            log.info("Full video analysis completed: length={}", result.length());
-            
-            // 5. Delete from storage if not keeping videos
+
+            log.info("Full video analysis saved to database");
+
+            // 8. Delete from storage if not keeping videos
             if (!session.getKeepVideo()) {
                 storageService.deleteObject(storagePath);
                 log.info("Deleted full video from storage (keepVideo=false)");
@@ -272,8 +299,8 @@ public class VideoProcessingService {
         String previousContext = "";
         if (globalWindowIndex > 0) {
             AnalysisRecord lastRecord = analysisService.getLastAnalysisRecord(session.getId());
-            if (lastRecord != null && lastRecord.getContent() != null) {
-                previousContext = summarizeForContext(lastRecord.getContent());
+            if (lastRecord != null && lastRecord.getRefinedContent() != null) {
+                previousContext = summarizeForContext(lastRecord.getRefinedContent());
             }
         }
 
@@ -336,6 +363,9 @@ public class VideoProcessingService {
         if (isLastChunk) {
             videoUploadService.updateSessionStatus(session.getId(), Session.SessionStatus.COMPLETED);
             log.info("Last chunk processed, session {} marked as COMPLETED", session.getId());
+
+            // Trigger session completion (title + memory) asynchronously
+            sessionCompletionService.completeSession(session.getId());
         }
 
         log.info("Window analysis batch completed for session {}", session.getId());
@@ -381,9 +411,12 @@ public class VideoProcessingService {
             // 3. Generate public URL
             String videoUrl = storageService.generatePublicUrl(storagePath);
             log.info("🎥 Generated URL for window {}: {}", globalWindowIndex, videoUrl);
-            
-            // 4. Call AI analysis
-            String result = grpcClientService.analyzeVideoSync(
+
+            // 4. Get user memory
+            String userMemory = userMemoryService.getUserMemory(session.getUserId());
+
+            // 5. Call AI analysis (raw result)
+            String rawResult = grpcClientService.analyzeVideoSync(
                     session.getId().toString(),
                     globalWindowIndex,
                     videoUrl,
@@ -392,30 +425,49 @@ public class VideoProcessingService {
                     startTime,
                     endTime,
                     "sliding_window",  // Pass sliding_window mode
-                    content -> analysisService.sendStreamingResult(session.getId(), globalWindowIndex, content)
+                    userMemory,  // Pass user memory
+                    content -> {} // Don't stream raw result
             );
-            
-            // 5. Save analysis result
-            analysisService.saveAnalysisRecord(
+
+            log.info("Window {} raw analysis completed: length={}", globalWindowIndex, rawResult.length());
+
+            // 6. Refine analysis result
+            String refinedResult = grpcClientService.refineAnalysis(
+                    session.getId().toString(),
+                    globalWindowIndex,
+                    rawResult,
+                    session.getCurrentVideoLength(),  // Total video duration
+                    userMemory,
+                    session.getAiModel()
+            );
+
+            log.info("Window {} analysis refined: length={}", globalWindowIndex, refinedResult.length());
+
+            // 7. Stream refined result to frontend
+            analysisService.sendStreamingResult(session.getId(), globalWindowIndex, refinedResult);
+
+            // 8. Save analysis result
+            analysisService.saveAnalysisRecordWithRaw(
                     session.getId(),
                     null,  // chunkId not important anymore
                     globalWindowIndex,
-                    result,
+                    rawResult,
+                    refinedResult,
                     startTime,
                     endTime,
                     storagePath
             );
-            
-            // 6. Cleanup local window file
+
+            // 9. Cleanup local window file
             cleanupService.deleteLocalFile(windowPath);
-            
-            // 7. Delete from storage if not keeping videos
+
+            // 10. Delete from storage if not keeping videos
             if (!session.getKeepVideo()) {
                 storageService.deleteObject(storagePath);
             }
-            
-            log.info("Window {} analysis completed, result length={}", globalWindowIndex, result.length());
-            return result;
+
+            log.info("Window {} analysis completed, refined length={}", globalWindowIndex, refinedResult.length());
+            return refinedResult;
             
         } catch (Exception e) {
             log.error("Failed to extract/analyze window {}: {}", globalWindowIndex, e.getMessage(), e);

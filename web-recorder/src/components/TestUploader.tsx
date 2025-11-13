@@ -7,15 +7,15 @@ interface TestUploaderProps {
   config: RecordingConfig;
   chunkDuration: number;
   onSessionIdChange?: (sessionId: number | null) => void;
+  onStateChange?: (state: TestUploadState) => void;
 }
 
-export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestUploaderProps) {
+export function TestUploader({ config, chunkDuration, onSessionIdChange, onStateChange }: TestUploaderProps) {
   const [chunks, setChunks] = useState<ChunkFile[]>([]);
   const [state, setState] = useState<TestUploadState>(TestState.IDLE);
   const [currentChunkIndex, setCurrentChunkIndex] = useState<number>(0);
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [countdown, setCountdown] = useState<number>(0);
 
   const chunksRef = useRef<ChunkFile[]>([]);
   const currentChunkIndexRef = useRef<number>(0);
@@ -34,6 +34,13 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
   useEffect(() => {
     sessionIdRef.current = sessionId;
   }, [sessionId]);
+
+  // Notify parent of state changes
+  useEffect(() => {
+    if (onStateChange) {
+      onStateChange(state);
+    }
+  }, [state, onStateChange]);
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -70,12 +77,10 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
   const uploadChunk = useCallback(async (chunk: ChunkFile, isLastChunk: boolean = false) => {
     try {
       console.log(`Uploading chunk ${chunk.index}/${chunksRef.current.length - 1}...`);
-      setState(TestState.UPLOADING);
 
       const response = await uploadVideoChunk({
         file: chunk.file,
         sessionId: sessionIdRef.current || undefined,
-        userId: config.userId,
         chunkIndex: chunk.index,
         aiModel: config.aiModel,
         analysisMode: config.analysisMode,
@@ -108,7 +113,6 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
 
   const startCountdown = useCallback((seconds: number, onComplete: () => void) => {
     remainingTimeRef.current = seconds;
-    setCountdown(seconds);
 
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
@@ -116,7 +120,6 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
 
     countdownIntervalRef.current = window.setInterval(() => {
       remainingTimeRef.current -= 1;
-      setCountdown(remainingTimeRef.current);
 
       if (remainingTimeRef.current <= 0) {
         if (countdownIntervalRef.current) {
@@ -187,214 +190,54 @@ export function TestUploader({ config, chunkDuration, onSessionIdChange }: TestU
     sessionIdRef.current = null;
     setCurrentChunkIndex(0);
     setSessionId(null);
+
+    // Set state to UPLOADING immediately so config panel hides
+    setState(TestState.UPLOADING);
+
     uploadNextChunk();
   }, [uploadNextChunk]);
 
-  const handlePause = useCallback(() => {
-    setState(TestState.PAUSED);
-
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-      countdownIntervalRef.current = null;
-    }
-
-    console.log(`Upload paused (${remainingTimeRef.current}s remaining)`);
-  }, []);
-
-  const handleResume = useCallback(() => {
-    console.log(`Upload resumed (continuing with ${remainingTimeRef.current}s remaining)`);
-
-    if (remainingTimeRef.current > 0) {
-      setState(TestState.WAITING);
-      startCountdown(remainingTimeRef.current, () => {
-        uploadNextChunkRef.current?.();
-      });
-    } else {
-      uploadNextChunk();
-    }
-  }, [uploadNextChunk, startCountdown]);
-
-  const handleStop = useCallback(() => {
-    setState(TestState.IDLE);
-    currentChunkIndexRef.current = 0;
-    sessionIdRef.current = null;
-    remainingTimeRef.current = 0;
-    setCurrentChunkIndex(0);
-    setSessionId(null);
-    setCountdown(0);
-
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-      countdownIntervalRef.current = null;
-    }
-
-    if (onSessionIdChange) {
-      onSessionIdChange(null);
-    }
-
-    console.log('Upload stopped');
-  }, [onSessionIdChange]);
-
   const isIdle = state === TestState.IDLE || state === TestState.COMPLETED;
-  const isCompleted = state === TestState.COMPLETED;
-  const isUploading = state === TestState.UPLOADING;
-  const isWaiting = state === TestState.WAITING;
-  const isPaused = state === TestState.PAUSED;
-  const hasError = state === TestState.ERROR;
 
   return (
-    <div className="h-full p-4">
-      <div className="h-full flex flex-col space-y-4">
-        <h3 className="text-sm font-semibold text-gray-900 flex-shrink-0">Upload Chunks</h3>
-
-        {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto main-scrollbar space-y-4">
-          {/* File Selection */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-2">
-              Chunk Files
-            </label>
-            <input
-              type="file"
-              multiple
-              accept=".webm,.mp4"
-              onChange={handleFileSelect}
-              disabled={!isIdle}
-              className="block w-full text-xs text-gray-900 border border-gray-300 rounded-md cursor-pointer bg-gray-50 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              chunk_*.webm files
-            </p>
-          </div>
-
-          {/* Chunks Info */}
-          {chunks.length > 0 && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-              <p className="text-xs text-blue-700 font-semibold mb-2">
-                {chunks.length} file{chunks.length > 1 ? 's' : ''}
-              </p>
-              <div className="space-y-1 max-h-40 overflow-y-auto">
-                {chunks.map((chunk) => (
-                  <div
-                    key={chunk.index}
-                    className={`text-xs flex items-center justify-between p-1.5 rounded ${
-                      chunk.index === currentChunkIndex && !isIdle
-                        ? 'bg-blue-100 text-blue-900 font-semibold'
-                        : 'text-blue-600'
-                    }`}
-                  >
-                    <span className="truncate text-xs">
-                      {chunk.index === currentChunkIndex && isUploading && '⏳ '}
-                      {chunk.index < currentChunkIndex && '✓ '}
-                      {chunk.file.name}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Status Display */}
-          {!isIdle && (
-            <div className="p-3 bg-gray-50 border border-gray-200 rounded-md space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-gray-700">Status</span>
-                <span
-                  className={`text-xs font-semibold ${
-                    isUploading
-                      ? 'text-blue-600'
-                      : isWaiting
-                      ? 'text-yellow-600'
-                      : isPaused
-                      ? 'text-gray-600'
-                      : 'text-green-600'
-                  }`}
-                >
-                  {isUploading && '⏳ Uploading'}
-                  {isWaiting && `⏰ Wait ${countdown}s`}
-                  {isPaused && '⏸️ Paused'}
-                  {isCompleted && '✅ Done'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-gray-700">Progress</span>
-                <span className="text-xs text-gray-600">
-                  {currentChunkIndex}/{chunks.length}
-                </span>
-              </div>
-              {sessionId && (
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-gray-700">Session</span>
-                  <span className="text-xs text-gray-600 font-mono">#{sessionId}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Error Display */}
-          {hasError && error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-xs text-red-700">
-                <strong>Error:</strong> {error}
-              </p>
-            </div>
-          )}
-
-          {/* Info Message */}
-          {isIdle && chunks.length === 0 && (
-            <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
-              <p className="text-xs text-gray-700 font-semibold mb-2">
-                Instructions
-              </p>
-              <ol className="text-xs text-gray-600 space-y-1 pl-4 list-decimal">
-                <li>Select chunk files</li>
-                <li>Click "Start"</li>
-                <li>View results →</li>
-              </ol>
-            </div>
-          )}
-        </div>
-
-        {/* Control Buttons - Fixed at bottom */}
-        <div className="flex flex-col space-y-2 pt-4 border-t border-gray-200 flex-shrink-0">
-          {isIdle && (
-            <button
-              onClick={handleStart}
-              disabled={chunks.length === 0}
-              className="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-            >
-              Start Test
-            </button>
-          )}
-
-          {(isUploading || isWaiting) && (
-            <button
-              onClick={handlePause}
-              className="w-full px-4 py-2.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-semibold transition-all duration-150 shadow-sm"
-            >
-              Pause
-            </button>
-          )}
-
-          {isPaused && (
-            <button
-              onClick={handleResume}
-              className="w-full px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition-all duration-150 shadow-sm"
-            >
-              Resume
-            </button>
-          )}
-
-          {!isIdle && (
-            <button
-              onClick={handleStop}
-              className="w-full px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-all duration-150 shadow-sm"
-            >
-              Stop
-            </button>
-          )}
-        </div>
+    <div>
+      {/* File Selection */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Video Chunks
+        </label>
+        <input
+          type="file"
+          multiple
+          accept=".webm,.mp4"
+          onChange={handleFileSelect}
+          disabled={!isIdle}
+          className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+        />
+        {chunks.length > 0 && (
+          <p className="mt-2 text-sm text-gray-600">
+            {chunks.length} file{chunks.length > 1 ? 's' : ''} selected
+          </p>
+        )}
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-700">
+            <strong>Error:</strong> {error}
+          </p>
+        </div>
+      )}
+
+      {/* Start Button */}
+      <button
+        onClick={handleStart}
+        disabled={chunks.length === 0 || !isIdle}
+        className="mt-6 w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+      >
+        Start Test
+      </button>
     </div>
   );
 }

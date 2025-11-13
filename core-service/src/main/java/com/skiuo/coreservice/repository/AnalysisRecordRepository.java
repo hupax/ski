@@ -20,4 +20,7 @@ public interface AnalysisRecordRepository extends JpaRepository<AnalysisRecord, 
 
     // Count total windows analyzed for a session
     long countBySessionId(Long sessionId);
+
+    // Get all analysis records for a session ordered by window index
+    List<AnalysisRecord> findAllBySessionIdOrderByWindowIndexAsc(Long sessionId);
 }

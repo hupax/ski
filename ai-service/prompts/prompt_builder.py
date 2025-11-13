@@ -27,13 +27,15 @@ class PromptBuilder:
 
     def build_first_window_prompt(
             self,
-            include_scenario_hint: bool = True
+            include_scenario_hint: bool = True,
+            user_memory: str = ""
     ) -> str:
         """
         Build prompt for the first window (no context)
 
         Args:
             include_scenario_hint: Whether to include scenario-specific hints
+            user_memory: User memory JSON string
 
         Returns:
             Complete prompt string
@@ -54,10 +56,14 @@ class PromptBuilder:
         if include_scenario_hint and self.language == 'zh':
             scenario_hint = self._get_scenario_enhancement_zh()
 
+        # Add user memory context
+        user_memory_context = self._build_user_memory_context(user_memory)
+
         prompt = template.format(
             system_role=system_role,
             core_requirements=core_req,
-            focus_points=focus + scenario_hint
+            focus_points=focus + scenario_hint,
+            user_memory_context=user_memory_context
         )
 
         return prompt
@@ -65,7 +71,8 @@ class PromptBuilder:
     def build_subsequent_window_prompt(
             self,
             context: str,
-            include_scenario_hint: bool = True
+            include_scenario_hint: bool = True,
+            user_memory: str = ""
     ) -> str:
         """
         Build prompt for subsequent windows (with context)
@@ -73,6 +80,7 @@ class PromptBuilder:
         Args:
             context: Previous analysis result
             include_scenario_hint: Whether to include scenario-specific hints
+            user_memory: User memory JSON string
 
         Returns:
             Complete prompt string
@@ -93,24 +101,30 @@ class PromptBuilder:
         if include_scenario_hint and self.language == 'zh':
             scenario_hint = self._get_scenario_enhancement_zh()
 
+        # Add user memory context
+        user_memory_context = self._build_user_memory_context(user_memory)
+
         prompt = template.format(
             context=context,
             system_role=system_role,
             core_requirements=core_req,
-            focus_points=focus + scenario_hint
+            focus_points=focus + scenario_hint,
+            user_memory_context=user_memory_context
         )
 
         return prompt
 
     def build_full_video_prompt(
             self,
-            include_scenario_hint: bool = True
+            include_scenario_hint: bool = True,
+            user_memory: str = ""
     ) -> str:
         """
         Build prompt for full video analysis
 
         Args:
             include_scenario_hint: Whether to include scenario-specific hints
+            user_memory: User memory JSON string
 
         Returns:
             Complete prompt string
@@ -131,10 +145,14 @@ class PromptBuilder:
         if include_scenario_hint and self.language == 'zh':
             scenario_hint = self._get_scenario_enhancement_zh()
 
+        # Add user memory context
+        user_memory_context = self._build_user_memory_context(user_memory)
+
         prompt = template.format(
             system_role=system_role,
             core_requirements=core_req,
-            focus_points=focus + scenario_hint
+            focus_points=focus + scenario_hint,
+            user_memory_context=user_memory_context
         )
 
         return prompt
@@ -148,6 +166,16 @@ class PromptBuilder:
             'general': base_prompts.GENERAL_ENHANCEMENT_ZH
         }
         return enhancements.get(self.scenario, base_prompts.GENERAL_ENHANCEMENT_ZH)
+
+    def _build_user_memory_context(self, user_memory: str) -> str:
+        """Build user memory context section"""
+        if not user_memory or user_memory.strip() in ['', '{}']:
+            return ""
+
+        if self.language == 'zh':
+            return f"\n\n**用户背景信息**(帮助你更好地理解视频内容和用户习惯):\n```json\n{user_memory}\n```\n"
+        else:
+            return f"\n\n**User Background Information** (helps you better understand video content and user habits):\n```json\n{user_memory}\n```\n"
 
     def set_language(self, language: str):
         """Change language setting"""

@@ -138,6 +138,7 @@ class VideoAnalysisServicer(video_analysis_pb2_grpc.VideoAnalysisServiceServicer
             ai_model = request.ai_model
             context_text = request.context
             analysis_mode = request.analysis_mode or "sliding_window"  # Default to sliding_window if not set
+            user_memory = request.user_memory or ""  # User memory JSON string
 
             logger.info(f"AnalyzeVideo called: session={session_id}, window={window_index}, model={ai_model}, mode={analysis_mode}")
             logger.info(f"📥 [URL-TRACK] Received from core-service: session={session_id}, window={window_index}, videoUrl={video_url}")
@@ -177,7 +178,8 @@ class VideoAnalysisServicer(video_analysis_pb2_grpc.VideoAnalysisServiceServicer
                                     context=context_text,
                                     session_id=session_id,
                                     window_index=window_index,
-                                    analysis_mode=analysis_mode
+                                    analysis_mode=analysis_mode,
+                                    user_memory=user_memory
                             ):
                                 chunk_count += 1
                                 response = video_analysis_pb2.AnalysisResponse(
@@ -415,6 +417,183 @@ class VideoAnalysisServicer(video_analysis_pb2_grpc.VideoAnalysisServiceServicer
             logger.error(f"Unexpected error in GetVideoDuration: {e}")
             return video_analysis_pb2.GetVideoDurationResponse(
                 duration=0.0,
+                error=f"Internal error: {e}"
+            )
+
+    def GenerateTitle(self, request, context):
+        """
+        Generate a concise title based on analysis results
+
+        Args:
+            request: GenerateTitleRequest
+            context: gRPC context
+
+        Returns:
+            GenerateTitleResponse
+        """
+        try:
+            session_id = request.session_id
+            analysis_results = list(request.analysis_results)
+            user_memory = request.user_memory or ""
+            ai_model = request.ai_model
+
+            logger.info(f"GenerateTitle called: session={session_id}, model={ai_model}, results_count={len(analysis_results)}")
+
+            # Get analyzer
+            try:
+                analyzer = get_analyzer(ai_model)
+            except ModelNotFoundError as e:
+                logger.error(f"Model not found: {e}")
+                return video_analysis_pb2.GenerateTitleResponse(
+                    title="",
+                    error=str(e)
+                )
+
+            # Generate title (async call, need to run in event loop)
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                title = loop.run_until_complete(
+                    analyzer.generate_title(analysis_results, user_memory)
+                )
+                logger.info(f"GenerateTitle completed: title={title}")
+                return video_analysis_pb2.GenerateTitleResponse(
+                    title=title,
+                    error=""
+                )
+            finally:
+                loop.close()
+
+        except AIServiceError as e:
+            logger.error(f"GenerateTitle failed: {e}")
+            return video_analysis_pb2.GenerateTitleResponse(
+                title="",
+                error=str(e)
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error in GenerateTitle: {e}")
+            return video_analysis_pb2.GenerateTitleResponse(
+                title="",
+                error=f"Internal error: {e}"
+            )
+
+    def RefineAnalysis(self, request, context):
+        """
+        Refine analysis result by fixing obvious errors
+
+        Args:
+            request: RefineAnalysisRequest
+            context: gRPC context
+
+        Returns:
+            RefineAnalysisResponse
+        """
+        try:
+            session_id = request.session_id
+            window_index = request.window_index
+            raw_content = request.raw_content
+            metadata = request.metadata
+            user_memory = request.user_memory or ""
+            ai_model = request.ai_model
+
+            logger.info(f"RefineAnalysis called: session={session_id}, window={window_index}, model={ai_model}")
+
+            # Get analyzer
+            try:
+                analyzer = get_analyzer(ai_model)
+            except ModelNotFoundError as e:
+                logger.error(f"Model not found: {e}")
+                return video_analysis_pb2.RefineAnalysisResponse(
+                    refined_content="",
+                    error=str(e)
+                )
+
+            # Extract metadata
+            video_duration = metadata.video_duration if metadata else 0.0
+            extra_metadata = dict(metadata.custom) if metadata and metadata.custom else None
+
+            # Refine analysis (async call)
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                refined = loop.run_until_complete(
+                    analyzer.refine_analysis(raw_content, video_duration, user_memory, extra_metadata)
+                )
+                logger.info(f"RefineAnalysis completed: length={len(refined)}")
+                return video_analysis_pb2.RefineAnalysisResponse(
+                    refined_content=refined,
+                    error=""
+                )
+            finally:
+                loop.close()
+
+        except AIServiceError as e:
+            logger.error(f"RefineAnalysis failed: {e}")
+            return video_analysis_pb2.RefineAnalysisResponse(
+                refined_content="",
+                error=str(e)
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error in RefineAnalysis: {e}")
+            return video_analysis_pb2.RefineAnalysisResponse(
+                refined_content="",
+                error=f"Internal error: {e}"
+            )
+
+    def ExtractUserMemory(self, request, context):
+        """
+        Extract user memory from analysis results
+
+        Args:
+            request: ExtractUserMemoryRequest
+            context: gRPC context
+
+        Returns:
+            ExtractUserMemoryResponse
+        """
+        try:
+            session_id = request.session_id
+            analysis_results = list(request.analysis_results)
+            current_memory = request.current_memory or ""
+            ai_model = request.ai_model
+
+            logger.info(f"ExtractUserMemory called: session={session_id}, model={ai_model}, results_count={len(analysis_results)}")
+
+            # Get analyzer
+            try:
+                analyzer = get_analyzer(ai_model)
+            except ModelNotFoundError as e:
+                logger.error(f"Model not found: {e}")
+                return video_analysis_pb2.ExtractUserMemoryResponse(
+                    new_memory="",
+                    error=str(e)
+                )
+
+            # Extract memory (async call)
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                new_memory = loop.run_until_complete(
+                    analyzer.extract_user_memory(analysis_results, current_memory)
+                )
+                logger.info(f"ExtractUserMemory completed: length={len(new_memory)}")
+                return video_analysis_pb2.ExtractUserMemoryResponse(
+                    new_memory=new_memory,
+                    error=""
+                )
+            finally:
+                loop.close()
+
+        except AIServiceError as e:
+            logger.error(f"ExtractUserMemory failed: {e}")
+            return video_analysis_pb2.ExtractUserMemoryResponse(
+                new_memory="",
+                error=str(e)
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error in ExtractUserMemory: {e}")
+            return video_analysis_pb2.ExtractUserMemoryResponse(
+                new_memory="",
                 error=f"Internal error: {e}"
             )
 

@@ -1,5 +1,6 @@
 package com.skiuo.coreservice.controller;
 
+import com.skiuo.coreservice.client.AuthServiceClient;
 import com.skiuo.coreservice.dto.*;
 import com.skiuo.coreservice.entity.AnalysisRecord;
 import com.skiuo.coreservice.entity.Session;
@@ -31,6 +32,7 @@ public class VideoController {
     private final AnalysisService analysisService;
     private final SessionRepository sessionRepository;
     private final VideoChunkRepository videoChunkRepository;
+    private final AuthServiceClient authServiceClient;
 
     /**
      * Upload video chunk
@@ -38,9 +40,9 @@ public class VideoController {
      */
     @PostMapping("/upload")
     public ResponseEntity<VideoUploadResponse> uploadVideo(
+            @RequestHeader("Authorization") String authorization,
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "sessionId", required = false) Long sessionId,
-            @RequestParam("userId") Long userId,
             @RequestParam("chunkIndex") Integer chunkIndex,
             @RequestParam(value = "aiModel", defaultValue = "qwen") String aiModel,
             @RequestParam(value = "analysisMode", defaultValue = "SLIDING_WINDOW") String analysisMode,
@@ -50,6 +52,20 @@ public class VideoController {
             @RequestParam(value = "isLastChunk", defaultValue = "false") Boolean isLastChunk) {
 
         try {
+            // Validate token and get user
+            String token = authorization.replace("Bearer ", "");
+            AuthServiceClient.UserInfo user = authServiceClient.validateToken(token);
+
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(VideoUploadResponse.builder()
+                                .status("UNAUTHORIZED")
+                                .message("Invalid or expired token")
+                                .build());
+            }
+
+            Long userId = user.getId();
+
             log.info("Received video upload: sessionId={}, userId={}, chunkIndex={}, size={}",
                     sessionId, userId, chunkIndex, file.getSize());
 

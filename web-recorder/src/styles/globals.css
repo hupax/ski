@@ -1,0 +1,413 @@
+/* SKI Video Analysis - Global Styles (Based on Wrangler) */
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --foreground-rgb: 0, 0, 0;
+  --sidebar-bg: rgb(249, 249, 249);
+  --sidebar-hover: rgb(239, 239, 239);
+  --border-color: rgb(237, 237, 237);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    --foreground-rgb: 255, 255, 255;
+  }
+}
+
+body {
+  color: var(--foreground);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: var(--background);
+  margin: 0;
+  padding: 0;
+}
+
+/* 平滑滚动 */
+html {
+  scroll-behavior: smooth;
+}
+
+/* 文字选择颜色 */
+::selection {
+  background-color: rgba(0, 0, 0, 0.1);
+  color: inherit;
+}
+
+/* 焦点样式优化 */
+textarea:focus,
+input:focus,
+button:focus {
+  outline: none;
+}
+
+/* 动画优化 - 全局过渡效果 */
+* {
+  transition-property: color, background-color, border-color,
+    text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter,
+    backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* 自定义滚动条样式 - 侧边栏 */
+.openai-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 6px;
+}
+
+.openai-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.openai-scrollbar::-webkit-scrollbar-thumb {
+  background: rgb(236, 236, 236);
+  border-radius: 3px;
+  border-right: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.openai-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgb(227, 227, 227);
+  background-clip: padding-box;
+}
+
+/* 自定义滚动条样式 - 主内容区 */
+.main-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.main-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.main-scrollbar::-webkit-scrollbar-thumb {
+  background: rgb(236, 236, 236);
+  border-radius: 4px;
+}
+
+.main-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgb(227, 227, 227);
+}
+
+/* 动画定义 */
+@keyframes slideUpAndFade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slideUpAndFade {
+  animation: slideUpAndFade 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* 输入框样式 */
+.input-wrapper {
+  position: relative;
+  background: #ffffff;
+  border-radius: 28px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05);
+  padding: 10px;
+}
+
+.editable-input {
+  outline: none;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  min-height: 20px;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  width: 100%;
+  line-height: 1.5;
+  max-height: 365px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0;
+  box-shadow: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  resize: none;
+}
+
+.editable-input::-webkit-scrollbar {
+  width: 6px;
+}
+
+.editable-input::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+}
+
+.editable-input::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.editable-input::placeholder {
+  color: #8e8ea0;
+  opacity: 1;
+}
+
+/* 按钮基础样式 */
+.icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: #0d0d0d;
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.icon-button:hover {
+  background-color: rgb(239, 239, 239);
+}
+
+.icon-button:active {
+  transform: scale(0.95);
+}
+
+.icon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 主要按钮样式 */
+.primary-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: none;
+  background: #0d0d0d;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.primary-button:hover {
+  opacity: 0.8;
+}
+
+.primary-button:active {
+  transform: scale(0.98);
+}
+
+.primary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 边框分隔线 */
+.separator-line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: rgb(237, 237, 237);
+  transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Markdown 内容样式 */
+.markdown-content {
+  line-height: 1.6;
+  color: #0d0d0d;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.markdown-content p {
+  margin-bottom: 1em;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin-bottom: 1em;
+  padding-left: 1.5em;
+}
+
+.markdown-content li {
+  margin-bottom: 0.25em;
+}
+
+.markdown-content code {
+  background: rgb(249, 249, 249);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9em;
+}
+
+.markdown-content pre {
+  background: #1a1a1a;
+  color: #e6e6e6;
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin-bottom: 1em;
+}
+
+.markdown-content pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  color: inherit;
+}
+
+.markdown-content blockquote {
+  border-left: 3px solid rgb(237, 237, 237);
+  padding-left: 1rem;
+  margin-left: 0;
+  color: #666;
+  font-style: italic;
+}
+
+.markdown-content a {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+.markdown-content a:hover {
+  text-decoration: underline;
+}
+
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1em;
+}
+
+.markdown-content th,
+.markdown-content td {
+  border: 1px solid rgb(237, 237, 237);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.markdown-content th {
+  background: rgb(249, 249, 249);
+  font-weight: 600;
+}
+
+/* Loading spinner */
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-top-color: #0d0d0d;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* 模态框背景遮罩 */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* 模态框内容 */
+.modal-content {
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 16px 70px rgba(0, 0, 0, 0.15);
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+}
+
+/* 菜单样式 */
+.menu-container {
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgb(237, 237, 237);
+  padding: 6px;
+  min-width: 200px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #0d0d0d;
+  transition: background-color 150ms;
+}
+
+.menu-item:hover {
+  background-color: rgb(239, 239, 239);
+}
+
+.menu-item-danger {
+  color: #ef4444;
+}
+
+.menu-item-danger:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+}

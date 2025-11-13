@@ -19,11 +19,13 @@ class Config:
         'QWEN_API_ENDPOINT',
         'https://dashscope.aliyuncs.com/compatible-mode/v1'
     )
-    QWEN_MODEL = os.getenv('QWEN_MODEL', 'qwen-vl-max')
+    QWEN_VL_MODEL = os.getenv('QWEN_VL_MODEL', 'qwen-vl-max')  # For video analysis
+    QWEN_TEXT_MODEL = os.getenv('QWEN_TEXT_MODEL', 'qwen-max')  # For text-only tasks
 
     # Gemini API (Google)
     GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
-    GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-1.5-pro')
+    GEMINI_VL_MODEL = os.getenv('GEMINI_VL_MODEL', 'gemini-2.0-flash-exp')  # For video analysis
+    GEMINI_TEXT_MODEL = os.getenv('GEMINI_TEXT_MODEL', 'gemini-2.0-flash-exp')  # For text-only tasks
 
     # ==================== gRPC Configuration ====================
     GRPC_PORT = int(os.getenv('AI_SERVICE_PORT', 50051))

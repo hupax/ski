@@ -62,7 +62,6 @@ export function useMediaRecorder(config: RecordingConfig): UseMediaRecorderRetur
           const response = await uploadVideoChunk({
             file: blob,
             sessionId: currentSessionId || undefined,
-            userId: config.userId,
             chunkIndex: currentChunkIndex,
             aiModel: config.aiModel,
             analysisMode: config.analysisMode,
