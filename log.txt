@@ -1,78 +1,487 @@
- API: session=3, window=0, videoUrl=https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/3/full_video.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763010752%3B1763014352%26q-key-time%3D1763010752%3B1763014352%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D3eb125d7e0ea18f4fa2a1ea782bb7f0ec4935f5f
-2025-11-13 13:13:26 - models.qwen_analyzer - INFO - Qwen analysis completed: session=3, window=0, length=4084
-2025-11-13 13:13:26 - grpc_server - INFO - AnalyzeVideo completed: session=3, window=0, chunks=1755
-2025-11-13 13:13:26 - grpc_server - INFO - RefineAnalysis called: session=3, window=0, model=qwen
-2025-11-13 13:13:26 - models.qwen_analyzer - INFO - Initialized QwenAnalyzer with VL model: qwen-vl-max, Text model: qwen-max
-2025-11-13 13:13:26 - models.qwen_analyzer - INFO - Prompt config: language=zh, scenario=general
-2025-11-13 13:13:26 - models.factory - INFO - Created Qwen analyzer
-2025-11-13 13:13:26 - models.qwen_analyzer - INFO - Refining analysis with Qwen
-2025-11-13 13:14:35 - models.qwen_analyzer - INFO - Refined content length: 4060
-2025-11-13 13:14:35 - grpc_server - INFO - RefineAnalysis completed: length=4060
-2025-11-13 13:14:36 - grpc_server - INFO - GenerateTitle called: session=3, model=qwen, results_count=1
-2025-11-13 13:14:36 - models.qwen_analyzer - INFO - Initialized QwenAnalyzer with VL model: qwen-vl-max, Text model: qwen-max
-2025-11-13 13:14:36 - models.qwen_analyzer - INFO - Prompt config: language=zh, scenario=general
-2025-11-13 13:14:36 - models.factory - INFO - Created Qwen analyzer
-2025-11-13 13:14:36 - models.qwen_analyzer - INFO - Generating title with Qwen
-2025-11-13 13:14:37 - models.qwen_analyzer - INFO - Generated title: LeetCode两数之和
-2025-11-13 13:14:37 - grpc_server - INFO - GenerateTitle completed: title=LeetCode两数之和
-2025-11-13 13:14:37 - grpc_server - INFO - ExtractUserMemory called: session=3, model=qwen, results_count=1
-2025-11-13 13:14:37 - models.qwen_analyzer - INFO - Initialized QwenAnalyzer with VL model: qwen-vl-max, Text model: qwen-max
-2025-11-13 13:14:37 - models.qwen_analyzer - INFO - Prompt config: language=zh, scenario=general
-2025-11-13 13:14:37 - models.factory - INFO - Created Qwen analyzer
-2025-11-13 13:14:37 - models.qwen_analyzer - INFO - Extracting user memory with Qwen
-2025-11-13 13:14:45 - models.qwen_analyzer - WARNING - Invalid JSON returned, using empty structure: Expecting value: line 1 column 1 (char 0)
-2025-11-13 13:14:45 - grpc_server - INFO - ExtractUserMemory completed: length=56
+/Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home/bin/java -XX:TieredStopAtLevel=1 -Dspring.output.ansi.enabled=always -Dcom.sun.management.jmxremote -Dspring.jmx.enabled=true -Dspring.liveBeansView.mbeanDomain -Dspring.application.admin.enabled=true -Dmanagement.endpoints.jmx.exposure.include=* -javaagent:/Applications/IntelliJ IDEA.app/Contents/lib/idea_rt.jar=54332 -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 -classpath /Users/hupax/ski/core-service/target/classes:/Users/hupax/ski/common/target/classes:/usr/local/maven-3.9.9/mvn_repo/org/springframework/boot/spring-boot-starter/3.5.7/spring-boot-starter-3.5.7.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/boot/spring-boot/3.5.7/spring-boot-3.5.7.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/boot/spring-boot-autoconfigure/3.5.7/spring-boot-autoconfigure-3.5.7.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/boot/spring-boot-starter-logging/3.5.7/spring-boot-starter-logging-3.5.7.jar:/usr/local/maven-3.9.9/mvn_repo/ch/qos/logback/logback-classic/1.5.20/logback-classic-1.5.20.jar:/usr/local/maven-3.9.9/mvn_repo/ch/qos/logback/logback-core/1.5.20/logback-core-1.5.20.jar:/usr/local/maven-3.9.9/mvn_repo/org/apache/logging/log4j/log4j-to-slf4j/2.24.3/log4j-to-slf4j-2.24.3.jar:/usr/local/maven-3.9.9/mvn_repo/org/apache/logging/log4j/log4j-api/2.24.3/log4j-api-2.24.3.jar:/usr/local/maven-3.9.9/mvn_repo/org/slf4j/jul-to-slf4j/2.0.17/jul-to-slf4j-2.0.17.jar:/usr/local/maven-3.9.9/mvn_repo/jakarta/annotation/jakarta.annotation-api/2.1.1/jakarta.annotation-api-2.1.1.jar:/usr/local/maven-3.9.9/mvn_repo/org/yaml/snakeyaml/2.4/snakeyaml-2.4.jar:/usr/local/maven-3.9.9/mvn_repo/com/fasterxml/jackson/core/jackson-databind/2.19.2/jackson-databind-2.19.2.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/boot/spring-boot-starter-validation/3.5.7/spring-boot-starter-validation-3.5.7.jar:/usr/local/maven-3.9.9/mvn_repo/org/apache/tomcat/embed/tomcat-embed-el/10.1.48/tomcat-embed-el-10.1.48.jar:/usr/local/maven-3.9.9/mvn_repo/org/hibernate/validator/hibernate-validator/8.0.3.Final/hibernate-validator-8.0.3.Final.jar:/usr/local/maven-3.9.9/mvn_repo/jakarta/validation/jakarta.validation-api/3.0.2/jakarta.validation-api-3.0.2.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/boot/spring-boot-starter-web/3.5.7/spring-boot-starter-web-3.5.7.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/boot/spring-boot-starter-json/3.5.7/spring-boot-starter-json-3.5.7.jar:/usr/local/maven-3.9.9/mvn_repo/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.19.2/jackson-datatype-jdk8-2.19.2.jar:/usr/local/maven-3.9.9/mvn_repo/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.19.2/jackson-datatype-jsr310-2.19.2.jar:/usr/local/maven-3.9.9/mvn_repo/com/fasterxml/jackson/module/jackson-module-parameter-names/2.19.2/jackson-module-parameter-names-2.19.2.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/boot/spring-boot-starter-tomcat/3.5.7/spring-boot-starter-tomcat-3.5.7.jar:/usr/local/maven-3.9.9/mvn_repo/org/apache/tomcat/embed/tomcat-embed-core/10.1.48/tomcat-embed-core-10.1.48.jar:/usr/local/maven-3.9.9/mvn_repo/org/apache/tomcat/embed/tomcat-embed-websocket/10.1.48/tomcat-embed-websocket-10.1.48.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/spring-web/6.2.12/spring-web-6.2.12.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/spring-beans/6.2.12/spring-beans-6.2.12.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/spring-webmvc/6.2.12/spring-webmvc-6.2.12.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/spring-aop/6.2.12/spring-aop-6.2.12.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/spring-context/6.2.12/spring-context-6.2.12.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/spring-expression/6.2.12/spring-expression-6.2.12.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/boot/spring-boot-starter-webflux/3.5.7/spring-boot-starter-webflux-3.5.7.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/boot/spring-boot-starter-reactor-netty/3.5.7/spring-boot-starter-reactor-netty-3.5.7.jar:/usr/local/maven-3.9.9/mvn_repo/io/projectreactor/netty/reactor-netty-http/1.2.11/reactor-netty-http-1.2.11.jar:/usr/local/maven-3.9.9/mvn_repo/io/netty/netty-codec-http/4.1.128.Final/netty-codec-http-4.1.128.Final.jar:/usr/local/maven-3.9.9/mvn_repo/io/netty/netty-common/4.1.128.Final/netty-common-4.1.128.Final.jar:/usr/local/maven-3.9.9/mvn_repo/io/netty/netty-buffer/4.1.128.Final/netty-buffer-4.1.128.Final.jar:/usr/local/maven-3.9.9/mvn_repo/io/netty/netty-transport/4.1.128.Final/netty-transport-4.1.128.Final.jar:/usr/local/maven-3.9.9/mvn_repo/io/netty/netty-codec/4.1.128.Final/netty-codec-4.1.128.Final.jar:/usr/local/maven-3.9.9/mvn_repo/io/netty/netty-handler/4.1.128.Final/netty-handler-4.1.128.Final.jar:/usr/local/maven-3.9.9/mvn_repo/io/netty/netty-codec-http2/4.1.128.Final/netty-codec-http2-4.1.128.Final.jar:/usr/local/maven-3.9.9/mvn_repo/io/netty/netty-resolver-dns/4.1.128.Final/netty-resolver-dns-4.1.128.Final.jar:/usr/local/maven-3.9.9/mvn_repo/io/netty/netty-resolver/4.1.128.Final/netty-resolver-4.1.128.Final.jar:/usr/local/maven-3.9.9/mvn_repo/io/netty/netty-codec-dns/4.1.128.Final/netty-codec-dns-4.1.128.Final.jar:/usr/local/maven-3.9.9/mvn_repo/io/netty/netty-resolver-dns-native-macos/4.1.128.Final/netty-resolver-dns-native-macos-4.1.128.Final-osx-x86_64.jar:/usr/local/maven-3.9.9/mvn_repo/io/netty/netty-resolver-dns-classes-macos/4.1.128.Final/netty-resolver-dns-classes-macos-4.1.128.Final.jar:/usr/local/maven-3.9.9/mvn_repo/io/netty/netty-transport-native-epoll/4.1.128.Final/netty-transport-native-epoll-4.1.128.Final-linux-x86_64.jar:/usr/local/maven-3.9.9/mvn_repo/io/netty/netty-transport-native-unix-common/4.1.128.Final/netty-transport-native-unix-common-4.1.128.Final.jar:/usr/local/maven-3.9.9/mvn_repo/io/netty/netty-transport-classes-epoll/4.1.128.Final/netty-transport-classes-epoll-4.1.128.Final.jar:/usr/local/maven-3.9.9/mvn_repo/io/projectreactor/netty/reactor-netty-core/1.2.11/reactor-netty-core-1.2.11.jar:/usr/local/maven-3.9.9/mvn_repo/io/netty/netty-handler-proxy/4.1.128.Final/netty-handler-proxy-4.1.128.Final.jar:/usr/local/maven-3.9.9/mvn_repo/io/netty/netty-codec-socks/4.1.128.Final/netty-codec-socks-4.1.128.Final.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/spring-webflux/6.2.12/spring-webflux-6.2.12.jar:/usr/local/maven-3.9.9/mvn_repo/io/projectreactor/reactor-core/3.7.12/reactor-core-3.7.12.jar:/usr/local/maven-3.9.9/mvn_repo/org/reactivestreams/reactive-streams/1.0.4/reactive-streams-1.0.4.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/boot/spring-boot-starter-data-jpa/3.5.7/spring-boot-starter-data-jpa-3.5.7.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/boot/spring-boot-starter-jdbc/3.5.7/spring-boot-starter-jdbc-3.5.7.jar:/usr/local/maven-3.9.9/mvn_repo/com/zaxxer/HikariCP/6.3.3/HikariCP-6.3.3.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/spring-jdbc/6.2.12/spring-jdbc-6.2.12.jar:/usr/local/maven-3.9.9/mvn_repo/org/hibernate/orm/hibernate-core/6.6.33.Final/hibernate-core-6.6.33.Final.jar:/usr/local/maven-3.9.9/mvn_repo/jakarta/persistence/jakarta.persistence-api/3.1.0/jakarta.persistence-api-3.1.0.jar:/usr/local/maven-3.9.9/mvn_repo/jakarta/transaction/jakarta.transaction-api/2.0.1/jakarta.transaction-api-2.0.1.jar:/usr/local/maven-3.9.9/mvn_repo/org/jboss/logging/jboss-logging/3.6.1.Final/jboss-logging-3.6.1.Final.jar:/usr/local/maven-3.9.9/mvn_repo/org/hibernate/common/hibernate-commons-annotations/7.0.3.Final/hibernate-commons-annotations-7.0.3.Final.jar:/usr/local/maven-3.9.9/mvn_repo/io/smallrye/jandex/3.2.0/jandex-3.2.0.jar:/usr/local/maven-3.9.9/mvn_repo/com/fasterxml/classmate/1.7.1/classmate-1.7.1.jar:/usr/local/maven-3.9.9/mvn_repo/net/bytebuddy/byte-buddy/1.17.8/byte-buddy-1.17.8.jar:/usr/local/maven-3.9.9/mvn_repo/org/glassfish/jaxb/jaxb-runtime/4.0.6/jaxb-runtime-4.0.6.jar:/usr/local/maven-3.9.9/mvn_repo/org/glassfish/jaxb/jaxb-core/4.0.6/jaxb-core-4.0.6.jar:/usr/local/maven-3.9.9/mvn_repo/org/eclipse/angus/angus-activation/2.0.3/angus-activation-2.0.3.jar:/usr/local/maven-3.9.9/mvn_repo/org/glassfish/jaxb/txw2/4.0.6/txw2-4.0.6.jar:/usr/local/maven-3.9.9/mvn_repo/com/sun/istack/istack-commons-runtime/4.1.2/istack-commons-runtime-4.1.2.jar:/usr/local/maven-3.9.9/mvn_repo/jakarta/inject/jakarta.inject-api/2.0.1/jakarta.inject-api-2.0.1.jar:/usr/local/maven-3.9.9/mvn_repo/org/antlr/antlr4-runtime/4.13.0/antlr4-runtime-4.13.0.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/data/spring-data-jpa/3.5.5/spring-data-jpa-3.5.5.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/data/spring-data-commons/3.5.5/spring-data-commons-3.5.5.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/spring-orm/6.2.12/spring-orm-6.2.12.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/spring-tx/6.2.12/spring-tx-6.2.12.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/spring-aspects/6.2.12/spring-aspects-6.2.12.jar:/usr/local/maven-3.9.9/mvn_repo/org/aspectj/aspectjweaver/1.9.24/aspectjweaver-1.9.24.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/boot/spring-boot-starter-websocket/3.5.7/spring-boot-starter-websocket-3.5.7.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/spring-messaging/6.2.12/spring-messaging-6.2.12.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/spring-websocket/6.2.12/spring-websocket-6.2.12.jar:/usr/local/maven-3.9.9/mvn_repo/org/postgresql/postgresql/42.7.8/postgresql-42.7.8.jar:/usr/local/maven-3.9.9/mvn_repo/org/checkerframework/checker-qual/3.49.5/checker-qual-3.49.5.jar:/usr/local/maven-3.9.9/mvn_repo/io/minio/minio/8.5.7/minio-8.5.7.jar:/usr/local/maven-3.9.9/mvn_repo/com/carrotsearch/thirdparty/simple-xml-safe/2.7.1/simple-xml-safe-2.7.1.jar:/usr/local/maven-3.9.9/mvn_repo/com/google/guava/guava/32.1.3-jre/guava-32.1.3-jre.jar:/usr/local/maven-3.9.9/mvn_repo/com/google/guava/failureaccess/1.0.1/failureaccess-1.0.1.jar:/usr/local/maven-3.9.9/mvn_repo/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/usr/local/maven-3.9.9/mvn_repo/com/google/j2objc/j2objc-annotations/2.8/j2objc-annotations-2.8.jar:/usr/local/maven-3.9.9/mvn_repo/com/squareup/okhttp3/okhttp/4.12.0/okhttp-4.12.0.jar:/usr/local/maven-3.9.9/mvn_repo/com/squareup/okio/okio/3.6.0/okio-3.6.0.jar:/usr/local/maven-3.9.9/mvn_repo/com/squareup/okio/okio-jvm/3.6.0/okio-jvm-3.6.0.jar:/usr/local/maven-3.9.9/mvn_repo/org/jetbrains/kotlin/kotlin-stdlib-common/1.9.25/kotlin-stdlib-common-1.9.25.jar:/usr/local/maven-3.9.9/mvn_repo/org/jetbrains/kotlin/kotlin-stdlib-jdk8/1.9.25/kotlin-stdlib-jdk8-1.9.25.jar:/usr/local/maven-3.9.9/mvn_repo/org/jetbrains/kotlin/kotlin-stdlib/1.9.25/kotlin-stdlib-1.9.25.jar:/usr/local/maven-3.9.9/mvn_repo/org/jetbrains/annotations/13.0/annotations-13.0.jar:/usr/local/maven-3.9.9/mvn_repo/org/jetbrains/kotlin/kotlin-stdlib-jdk7/1.9.25/kotlin-stdlib-jdk7-1.9.25.jar:/usr/local/maven-3.9.9/mvn_repo/com/fasterxml/jackson/core/jackson-annotations/2.19.2/jackson-annotations-2.19.2.jar:/usr/local/maven-3.9.9/mvn_repo/com/fasterxml/jackson/core/jackson-core/2.19.2/jackson-core-2.19.2.jar:/usr/local/maven-3.9.9/mvn_repo/org/bouncycastle/bcprov-jdk18on/1.76/bcprov-jdk18on-1.76.jar:/usr/local/maven-3.9.9/mvn_repo/org/apache/commons/commons-compress/1.24.0/commons-compress-1.24.0.jar:/usr/local/maven-3.9.9/mvn_repo/org/xerial/snappy/snappy-java/1.1.10.5/snappy-java-1.1.10.5.jar:/usr/local/maven-3.9.9/mvn_repo/com/aliyun/oss/aliyun-sdk-oss/3.17.4/aliyun-sdk-oss-3.17.4.jar:/usr/local/maven-3.9.9/mvn_repo/org/apache/httpcomponents/httpclient/4.5.13/httpclient-4.5.13.jar:/usr/local/maven-3.9.9/mvn_repo/org/apache/httpcomponents/httpcore/4.4.16/httpcore-4.4.16.jar:/usr/local/maven-3.9.9/mvn_repo/commons-logging/commons-logging/1.2/commons-logging-1.2.jar:/usr/local/maven-3.9.9/mvn_repo/org/jdom/jdom2/2.0.6.1/jdom2-2.0.6.1.jar:/usr/local/maven-3.9.9/mvn_repo/org/codehaus/jettison/jettison/1.5.4/jettison-1.5.4.jar:/usr/local/maven-3.9.9/mvn_repo/com/aliyun/aliyun-java-sdk-core/4.5.10/aliyun-java-sdk-core-4.5.10.jar:/usr/local/maven-3.9.9/mvn_repo/com/google/code/gson/gson/2.13.2/gson-2.13.2.jar:/usr/local/maven-3.9.9/mvn_repo/javax/xml/bind/jaxb-api/2.3.1/jaxb-api-2.3.1.jar:/usr/local/maven-3.9.9/mvn_repo/javax/activation/javax.activation-api/1.2.0/javax.activation-api-1.2.0.jar:/usr/local/maven-3.9.9/mvn_repo/org/jacoco/org.jacoco.agent/0.8.5/org.jacoco.agent-0.8.5-runtime.jar:/usr/local/maven-3.9.9/mvn_repo/org/ini4j/ini4j/0.5.4/ini4j-0.5.4.jar:/usr/local/maven-3.9.9/mvn_repo/io/opentracing/opentracing-api/0.33.0/opentracing-api-0.33.0.jar:/usr/local/maven-3.9.9/mvn_repo/io/opentracing/opentracing-util/0.33.0/opentracing-util-0.33.0.jar:/usr/local/maven-3.9.9/mvn_repo/io/opentracing/opentracing-noop/0.33.0/opentracing-noop-0.33.0.jar:/usr/local/maven-3.9.9/mvn_repo/com/aliyun/aliyun-java-sdk-ram/3.1.0/aliyun-java-sdk-ram-3.1.0.jar:/usr/local/maven-3.9.9/mvn_repo/com/aliyun/aliyun-java-sdk-kms/2.11.0/aliyun-java-sdk-kms-2.11.0.jar:/usr/local/maven-3.9.9/mvn_repo/com/qcloud/cos_api/5.6.229/cos_api-5.6.229.jar:/usr/local/maven-3.9.9/mvn_repo/org/slf4j/slf4j-api/2.0.17/slf4j-api-2.0.17.jar:/usr/local/maven-3.9.9/mvn_repo/commons-codec/commons-codec/1.18.0/commons-codec-1.18.0.jar:/usr/local/maven-3.9.9/mvn_repo/joda-time/joda-time/2.9.9/joda-time-2.9.9.jar:/usr/local/maven-3.9.9/mvn_repo/com/tencentcloudapi/tencentcloud-sdk-java-kms/3.1.213/tencentcloud-sdk-java-kms-3.1.213.jar:/usr/local/maven-3.9.9/mvn_repo/com/tencentcloudapi/tencentcloud-sdk-java-common/3.1.213/tencentcloud-sdk-java-common-3.1.213.jar:/usr/local/maven-3.9.9/mvn_repo/com/squareup/okhttp/logging-interceptor/2.7.5/logging-interceptor-2.7.5.jar:/usr/local/maven-3.9.9/mvn_repo/com/squareup/okhttp/okhttp/2.7.5/okhttp-2.7.5.jar:/usr/local/maven-3.9.9/mvn_repo/org/bouncycastle/bcprov-jdk15on/1.67/bcprov-jdk15on-1.67.jar:/usr/local/maven-3.9.9/mvn_repo/com/thoughtworks/xstream/xstream/1.4.20/xstream-1.4.20.jar:/usr/local/maven-3.9.9/mvn_repo/io/github/x-stream/mxparser/1.2.2/mxparser-1.2.2.jar:/usr/local/maven-3.9.9/mvn_repo/xmlpull/xmlpull/1.1.3.1/xmlpull-1.1.3.1.jar:/usr/local/maven-3.9.9/mvn_repo/com/auth0/java-jwt/4.4.0/java-jwt-4.4.0.jar:/usr/local/maven-3.9.9/mvn_repo/io/grpc/grpc-netty-shaded/1.68.1/grpc-netty-shaded-1.68.1.jar:/usr/local/maven-3.9.9/mvn_repo/io/grpc/grpc-util/1.68.1/grpc-util-1.68.1.jar:/usr/local/maven-3.9.9/mvn_repo/org/codehaus/mojo/animal-sniffer-annotations/1.24/animal-sniffer-annotations-1.24.jar:/usr/local/maven-3.9.9/mvn_repo/io/grpc/grpc-core/1.68.1/grpc-core-1.68.1.jar:/usr/local/maven-3.9.9/mvn_repo/com/google/android/annotations/4.1.1.4/annotations-4.1.1.4.jar:/usr/local/maven-3.9.9/mvn_repo/io/grpc/grpc-context/1.68.1/grpc-context-1.68.1.jar:/usr/local/maven-3.9.9/mvn_repo/com/google/errorprone/error_prone_annotations/2.28.0/error_prone_annotations-2.28.0.jar:/usr/local/maven-3.9.9/mvn_repo/io/perfmark/perfmark-api/0.27.0/perfmark-api-0.27.0.jar:/usr/local/maven-3.9.9/mvn_repo/io/grpc/grpc-api/1.68.1/grpc-api-1.68.1.jar:/usr/local/maven-3.9.9/mvn_repo/io/grpc/grpc-protobuf/1.68.1/grpc-protobuf-1.68.1.jar:/usr/local/maven-3.9.9/mvn_repo/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar:/usr/local/maven-3.9.9/mvn_repo/com/google/api/grpc/proto-google-common-protos/2.41.0/proto-google-common-protos-2.41.0.jar:/usr/local/maven-3.9.9/mvn_repo/io/grpc/grpc-protobuf-lite/1.68.1/grpc-protobuf-lite-1.68.1.jar:/usr/local/maven-3.9.9/mvn_repo/io/grpc/grpc-stub/1.68.1/grpc-stub-1.68.1.jar:/usr/local/maven-3.9.9/mvn_repo/com/google/protobuf/protobuf-java/3.25.1/protobuf-java-3.25.1.jar:/usr/local/maven-3.9.9/mvn_repo/javax/annotation/javax.annotation-api/1.3.2/javax.annotation-api-1.3.2.jar:/usr/local/maven-3.9.9/mvn_repo/org/projectlombok/lombok/1.18.42/lombok-1.18.42.jar:/usr/local/maven-3.9.9/mvn_repo/io/github/cdimascio/dotenv-java/3.0.0/dotenv-java-3.0.0.jar:/usr/local/maven-3.9.9/mvn_repo/io/hypersistence/hypersistence-utils-hibernate-63/3.7.3/hypersistence-utils-hibernate-63-3.7.3.jar:/usr/local/maven-3.9.9/mvn_repo/jakarta/xml/bind/jakarta.xml.bind-api/4.0.4/jakarta.xml.bind-api-4.0.4.jar:/usr/local/maven-3.9.9/mvn_repo/jakarta/activation/jakarta.activation-api/2.1.4/jakarta.activation-api-2.1.4.jar:/usr/local/maven-3.9.9/mvn_repo/io/hypersistence/hypersistence-tsid/2.1.1/hypersistence-tsid-2.1.1.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/spring-core/6.2.12/spring-core-6.2.12.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/spring-jcl/6.2.12/spring-jcl-6.2.12.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/boot/spring-boot-starter-actuator/3.5.7/spring-boot-starter-actuator-3.5.7.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/boot/spring-boot-actuator-autoconfigure/3.5.7/spring-boot-actuator-autoconfigure-3.5.7.jar:/usr/local/maven-3.9.9/mvn_repo/org/springframework/boot/spring-boot-actuator/3.5.7/spring-boot-actuator-3.5.7.jar:/usr/local/maven-3.9.9/mvn_repo/io/micrometer/micrometer-observation/1.15.5/micrometer-observation-1.15.5.jar:/usr/local/maven-3.9.9/mvn_repo/io/micrometer/micrometer-commons/1.15.5/micrometer-commons-1.15.5.jar:/usr/local/maven-3.9.9/mvn_repo/io/micrometer/micrometer-jakarta9/1.15.5/micrometer-jakarta9-1.15.5.jar:/usr/local/maven-3.9.9/mvn_repo/io/micrometer/micrometer-core/1.15.5/micrometer-core-1.15.5.jar:/usr/local/maven-3.9.9/mvn_repo/org/hdrhistogram/HdrHistogram/2.2.2/HdrHistogram-2.2.2.jar:/usr/local/maven-3.9.9/mvn_repo/org/latencyutils/LatencyUtils/2.0.3/LatencyUtils-2.0.3.jar com.skiuo.coreservice.CoreServiceApplication
+Standard Commons Logging discovery in action with spring-jcl: please remove commons-logging.jar from classpath in order to avoid potential conflicts
+✓ Loaded 105 variables from .env
 
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
 
-2025-11-13 13:14:37 - Generated session title: LeetCode两数之和
-2025-11-13 13:14:37 - Extracting user memory for session 3
-2025-11-13 13:14:37 - Calling ExtractUserMemory gRPC: session=3, model=qwen, results_count=1
-2025-11-13 13:14:45 - ExtractUserMemory completed: length=56
-2025-11-13 13:14:45 - Failed to extract/update user memory for session 3: Error attempting to apply AttributeConverter: class java.lang.String cannot be cast to class java.util.Map (java.lang.String and java.util.Map are in module java.base of loader 'bootstrap')
-2025-11-13 13:14:45 - Session completion finished: sessionId=3, title=LeetCode两数之和
+ :: Spring Boot ::                (v3.5.7)
 
-
-    /**
-     * User memory data stored as JSON
-     * Structure: {
-     *   "habits": { "programming_languages": [...], "tools": [...], "coding_style": [...] },
-     *   "knowledge": { "expertise": [...], "learning": [...], "gaps": [...] },
-     *   "behavior_patterns": { "workflows": [...], "problem_solving": [...], "project_types": [...] }
-     * }
-     */
-    @Column(name = "memory_data", columnDefinition = "jsonb", nullable = false)
-    @Convert(converter = JsonConverter.class)
-    private String memoryData;
-package com.skiuo.coreservice.converter;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.persistence.AttributeConverter;
-import jakarta.persistence.Converter;
-
-import java.util.Map;
-
-@Converter(autoApply = true)
-public class JsonConverter implements AttributeConverter<Map<String, Object>, String> {
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
-    @Override
-    public String convertToDatabaseColumn(Map<String, Object> attribute) {
-        try {
-            return objectMapper.writeValueAsString(attribute);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Could not convert Map to JSON string", e);
-        }
-    }
-
-    @Override
-    public Map<String, Object> convertToEntityAttribute(String dbData) {
-        try {
-            return objectMapper.readValue(dbData, new TypeReference<>() {
-            });
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Could not convert JSON string to Map", e);
-        }
-    }
-}
+2025-11-13 22:18:21 - Starting CoreServiceApplication using Java 21.0.5 with PID 17989 (/Users/hupax/ski/core-service/target/classes started by hupax in /Users/hupax/ski)
+2025-11-13 22:18:21 - No active profile set, falling back to 1 default profile: "default"
+2025-11-13 22:18:22 - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-11-13 22:18:22 - Finished Spring Data repository scanning in 58 ms. Found 5 JPA repository interfaces.
+2025-11-13 22:18:22 - Tomcat initialized with port 8080 (http)
+2025-11-13 22:18:22 - Starting service [Tomcat]
+2025-11-13 22:18:22 - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-13 22:18:22 - Initializing Spring embedded WebApplicationContext
+2025-11-13 22:18:22 - Root WebApplicationContext: initialization completed in 749 ms
+Standard Commons Logging discovery in action with spring-jcl: please remove commons-logging.jar from classpath in order to avoid potential conflicts
+2025-11-13 22:18:22 - HikariPool-1 - Starting...
+2025-11-13 22:18:22 - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@18dac12f
+2025-11-13 22:18:22 - HikariPool-1 - Start completed.
+2025-11-13 22:18:22 - HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-11-13 22:18:23 - No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-11-13 22:18:23 - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-11-13 22:18:23 - Creating gRPC channel to ai-service: localhost:50051
+2025-11-13 22:18:23 - GrpcClientService initialized with channel: ManagedChannelOrphanWrapper{delegate=ManagedChannelImpl{logId=1, target=localhost:50051}}
+2025-11-13 22:18:24 - Exposing 3 endpoints beneath base path '/actuator'
+2025-11-13 22:18:24 - Starting...
+2025-11-13 22:18:24 - BrokerAvailabilityEvent[available=true, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@e0fbed5]]
+2025-11-13 22:18:24 - Started.
+2025-11-13 22:18:24 - Tomcat started on port 8080 (http) with context path '/'
+2025-11-13 22:18:24 - Started CoreServiceApplication in 2.63 seconds (process running for 2.884)
+2025-11-13 22:18:24 - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-13 22:19:32 - Received video upload: sessionId=null, userId=4, chunkIndex=0, size=12019646
+2025-11-13 22:19:32 - Created new session: id=18, userId=4, storageType=cos
+2025-11-13 22:19:32 - Saved temporary file: sessionId=18, chunkIndex=0, path=/Users/hupax/ski/temp/18/chunk_0_1763043572250.webm
+2025-11-13 22:19:32 - Created video chunk: sessionId=18, chunkIndex=0, id=55
+2025-11-13 22:19:32 - Starting video processing: sessionId=18, chunkId=55, mode=SLIDING_WINDOW, isLastChunk=false
+2025-11-13 22:19:32 - Updated session status: sessionId=18, status=ANALYZING
+2025-11-13 22:19:32 - Processing in SLIDING_WINDOW mode (NEW): sessionId=18, isLastChunk=false
+2025-11-13 22:19:32 - Calling ConcatVideos gRPC: 1 videos
+2025-11-13 22:20:06 - ConcatVideos completed: output=/Users/hupax/ski/temp/18/master_video.webm
+2025-11-13 22:20:06 - Calling GetVideoDuration gRPC: video=/Users/hupax/ski/temp/18/master_video.webm
+2025-11-13 22:20:06 - GetVideoDuration completed: duration=34.83300018310547s
+2025-11-13 22:20:06 - Created master video (converted to VP9): path=/Users/hupax/ski/temp/18/master_video.webm, length=34.83300018310547s (actual from FFmpeg)
+2025-11-13 22:20:06 - Checking window analysis trigger for session 18: masterLength=34.83300018310547s, lastWindowStart=-20.0s, isLastChunk=false
+2025-11-13 22:20:06 - Trigger condition met (normalTrigger=true, lastChunkTrigger=false): analyzing window 0, range=[0.0, 30.0]s (clamped from 30.0s), currentVideoLength=34.83300018310547s
+2025-11-13 22:20:06 - Extracting and analyzing window 0: [0.0, 30.0]s
+2025-11-13 22:20:06 - Calling ExtractSegment gRPC: video=/Users/hupax/ski/temp/18/master_video.webm, range=[0.0s, 30.0s]
+2025-11-13 22:20:06 - ExtractSegment completed: output=/Users/hupax/ski/temp/18/window_0.webm
+2025-11-13 22:20:06 - COS bucket verified: jxzmnjcvm-1332406476
+2025-11-13 22:20:07 - Received video upload: sessionId=18, userId=4, chunkIndex=1, size=12638328
+2025-11-13 22:20:07 - Saved temporary file: sessionId=18, chunkIndex=1, path=/Users/hupax/ski/temp/18/chunk_1_1763043607171.webm
+2025-11-13 22:20:07 - Created video chunk: sessionId=18, chunkIndex=1, id=56
+2025-11-13 22:20:07 - Starting video processing: sessionId=18, chunkId=56, mode=SLIDING_WINDOW, isLastChunk=false
+2025-11-13 22:20:07 - Updated session status: sessionId=18, status=ANALYZING
+2025-11-13 22:20:07 - Processing in SLIDING_WINDOW mode (NEW): sessionId=18, isLastChunk=false
+2025-11-13 22:20:07 - Calling ConcatVideos gRPC: 2 videos
+2025-11-13 22:20:08 - Uploaded file to COS: /Users/hupax/ski/temp/18/window_0.webm -> sessions/18/windows/w0_0-30s.webm
+2025-11-13 22:20:08 - 🎥 Generated URL for window 0: https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w0_0-30s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043608%3B1763047208%26q-key-time%3D1763043608%3B1763047208%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3De9b6586f4d3d15a9dac6bf08ff11aa529be71479
+2025-11-13 22:20:08 - Calling AnalyzeVideo gRPC: sessionId=18, windowIndex=0, model=qwen
+2025-11-13 22:20:08 - 🚀 [URL-TRACK] Sending to ai-service via gRPC: sessionId=18, windowIndex=0, videoUrl=https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w0_0-30s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043608%3B1763047208%26q-key-time%3D1763043608%3B1763047208%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3De9b6586f4d3d15a9dac6bf08ff11aa529be71479
+2025-11-13 22:20:30 - ConcatVideos completed: output=/Users/hupax/ski/temp/18/master_temp.webm
+2025-11-13 22:20:30 - Calling GetVideoDuration gRPC: video=/Users/hupax/ski/temp/18/master_video.webm
+2025-11-13 22:20:30 - GetVideoDuration completed: duration=69.84100341796875s
+2025-11-13 22:20:30 - Appended to master video: new length=69.84100341796875s (actual from FFmpeg)
+2025-11-13 22:20:30 - Checking window analysis trigger for session 18: masterLength=69.84100341796875s, lastWindowStart=-20.0s, isLastChunk=false
+2025-11-13 22:20:30 - Trigger condition met (normalTrigger=true, lastChunkTrigger=false): analyzing window 0, range=[0.0, 30.0]s (clamped from 30.0s), currentVideoLength=69.84100341796875s
+2025-11-13 22:20:30 - Extracting and analyzing window 0: [0.0, 30.0]s
+2025-11-13 22:20:30 - Calling ExtractSegment gRPC: video=/Users/hupax/ski/temp/18/master_video.webm, range=[0.0s, 30.0s]
+2025-11-13 22:20:30 - ExtractSegment completed: output=/Users/hupax/ski/temp/18/window_0.webm
+2025-11-13 22:20:30 - COS bucket verified: jxzmnjcvm-1332406476
+2025-11-13 22:20:32 - AnalyzeVideo completed: sessionId=18, windowIndex=0
+2025-11-13 22:20:32 - Window 0 raw analysis completed: length=1828
+2025-11-13 22:20:32 - Calling RefineAnalysis gRPC: session=18, window=0, model=qwen
+2025-11-13 22:20:35 - Uploaded file to COS: /Users/hupax/ski/temp/18/window_0.webm -> sessions/18/windows/w0_0-30s.webm
+2025-11-13 22:20:35 - 🎥 Generated URL for window 0: https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w0_0-30s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043635%3B1763047235%26q-key-time%3D1763043635%3B1763047235%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D7278717afbe8118577b422bfbdaee81e93c36e7f
+2025-11-13 22:20:35 - Calling AnalyzeVideo gRPC: sessionId=18, windowIndex=0, model=qwen
+2025-11-13 22:20:35 - 🚀 [URL-TRACK] Sending to ai-service via gRPC: sessionId=18, windowIndex=0, videoUrl=https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w0_0-30s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043635%3B1763047235%26q-key-time%3D1763043635%3B1763047235%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D7278717afbe8118577b422bfbdaee81e93c36e7f
+2025-11-13 22:20:42 - Received video upload: sessionId=18, userId=4, chunkIndex=2, size=11800158
+2025-11-13 22:20:42 - Saved temporary file: sessionId=18, chunkIndex=2, path=/Users/hupax/ski/temp/18/chunk_2_1763043642178.webm
+2025-11-13 22:20:42 - Created video chunk: sessionId=18, chunkIndex=2, id=57
+2025-11-13 22:20:42 - Starting video processing: sessionId=18, chunkId=57, mode=SLIDING_WINDOW, isLastChunk=false
+2025-11-13 22:20:42 - Updated session status: sessionId=18, status=ANALYZING
+2025-11-13 22:20:42 - Processing in SLIDING_WINDOW mode (NEW): sessionId=18, isLastChunk=false
+2025-11-13 22:20:42 - Calling ConcatVideos gRPC: 2 videos
+2025-11-13 22:20:58 - RefineAnalysis completed: length=1828
+2025-11-13 22:20:58 - Window 0 analysis refined: length=1828
+2025-11-13 22:20:58 - Saved analysis record with raw: sessionId=18, windowIndex=0, raw=1828, refined=1828
+2025-11-13 22:20:58 - Deleted local file: /Users/hupax/ski/temp/18/window_0.webm
+2025-11-13 22:20:58 - Deleted object from COS: sessions/18/windows/w0_0-30s.webm
+2025-11-13 22:20:58 - Window 0 analysis completed, refined length=1828
+2025-11-13 22:20:58 - Not enough video length for next window: current=34.83300018310547s, needed=50.0s
+2025-11-13 22:20:58 - Window analysis batch completed for session 18
+2025-11-13 22:20:58 - Sliding window mode processing completed: sessionId=18, masterLength=34.83300018310547s
+2025-11-13 22:20:58 - Video processing completed: sessionId=18, chunkId=55
+2025-11-13 22:20:58 - Deleted local file: /Users/hupax/ski/temp/18/chunk_0_1763043572250.webm
+2025-11-13 22:20:58 - Cleanup completed: sessionId=18, chunkId=55, sessionFinished=false, keepVideo=false
+2025-11-13 22:21:03 - AnalyzeVideo completed: sessionId=18, windowIndex=0
+2025-11-13 22:21:03 - Window 0 raw analysis completed: length=2177
+2025-11-13 22:21:03 - Calling RefineAnalysis gRPC: session=18, window=0, model=qwen
+2025-11-13 22:21:08 - ConcatVideos completed: output=/Users/hupax/ski/temp/18/master_temp.webm
+2025-11-13 22:21:08 - Calling GetVideoDuration gRPC: video=/Users/hupax/ski/temp/18/master_video.webm
+2025-11-13 22:21:11 - GetVideoDuration completed: duration=104.8290023803711s
+2025-11-13 22:21:11 - Appended to master video: new length=104.8290023803711s (actual from FFmpeg)
+2025-11-13 22:21:11 - Checking window analysis trigger for session 18: masterLength=104.8290023803711s, lastWindowStart=-20.0s, isLastChunk=false
+2025-11-13 22:21:11 - Trigger condition met (normalTrigger=true, lastChunkTrigger=false): analyzing window 1, range=[0.0, 30.0]s (clamped from 30.0s), currentVideoLength=104.8290023803711s
+2025-11-13 22:21:11 - Extracting and analyzing window 1: [0.0, 30.0]s
+2025-11-13 22:21:11 - Calling ExtractSegment gRPC: video=/Users/hupax/ski/temp/18/master_video.webm, range=[0.0s, 30.0s]
+2025-11-13 22:21:11 - ExtractSegment completed: output=/Users/hupax/ski/temp/18/window_1.webm
+2025-11-13 22:21:11 - COS bucket verified: jxzmnjcvm-1332406476
+2025-11-13 22:21:17 - Received video upload: sessionId=18, userId=4, chunkIndex=3, size=12157205
+2025-11-13 22:21:17 - Saved temporary file: sessionId=18, chunkIndex=3, path=/Users/hupax/ski/temp/18/chunk_3_1763043677174.webm
+2025-11-13 22:21:17 - Created video chunk: sessionId=18, chunkIndex=3, id=58
+2025-11-13 22:21:17 - Starting video processing: sessionId=18, chunkId=58, mode=SLIDING_WINDOW, isLastChunk=false
+2025-11-13 22:21:17 - Updated session status: sessionId=18, status=ANALYZING
+2025-11-13 22:21:17 - Processing in SLIDING_WINDOW mode (NEW): sessionId=18, isLastChunk=false
+2025-11-13 22:21:17 - Calling ConcatVideos gRPC: 2 videos
+2025-11-13 22:21:19 - Uploaded file to COS: /Users/hupax/ski/temp/18/window_1.webm -> sessions/18/windows/w1_0-30s.webm
+2025-11-13 22:21:19 - 🎥 Generated URL for window 1: https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w1_0-30s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043679%3B1763047279%26q-key-time%3D1763043679%3B1763047279%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D2326aa31dc815d987f202226dc04e58effd83b16
+2025-11-13 22:21:19 - Calling AnalyzeVideo gRPC: sessionId=18, windowIndex=1, model=qwen
+2025-11-13 22:21:19 - 🚀 [URL-TRACK] Sending to ai-service via gRPC: sessionId=18, windowIndex=1, videoUrl=https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w1_0-30s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043679%3B1763047279%26q-key-time%3D1763043679%3B1763047279%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D2326aa31dc815d987f202226dc04e58effd83b16
+2025-11-13 22:21:35 - AnalyzeVideo completed: sessionId=18, windowIndex=1
+2025-11-13 22:21:35 - Window 1 raw analysis completed: length=588
+2025-11-13 22:21:35 - Calling RefineAnalysis gRPC: session=18, window=1, model=qwen
+2025-11-13 22:21:37 - RefineAnalysis completed: length=2177
+2025-11-13 22:21:37 - Window 0 analysis refined: length=2177
+2025-11-13 22:21:37 - Saved analysis record with raw: sessionId=18, windowIndex=0, raw=2177, refined=2177
+2025-11-13 22:21:37 - Deleted object from COS: sessions/18/windows/w0_0-30s.webm
+2025-11-13 22:21:37 - Window 0 analysis completed, refined length=2177
+2025-11-13 22:21:37 - Trigger condition met (normalTrigger=true, lastChunkTrigger=false): analyzing window 1, range=[20.0, 50.0]s (clamped from 50.0s), currentVideoLength=69.84100341796875s
+2025-11-13 22:21:37 - Extracting and analyzing window 1: [20.0, 50.0]s
+2025-11-13 22:21:37 - Calling ExtractSegment gRPC: video=/Users/hupax/ski/temp/18/master_video.webm, range=[20.0s, 50.0s]
+2025-11-13 22:21:38 - ExtractSegment completed: output=/Users/hupax/ski/temp/18/window_1.webm
+2025-11-13 22:21:38 - COS bucket verified: jxzmnjcvm-1332406476
+2025-11-13 22:21:39 - Uploaded file to COS: /Users/hupax/ski/temp/18/window_1.webm -> sessions/18/windows/w1_20-50s.webm
+2025-11-13 22:21:39 - 🎥 Generated URL for window 1: https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w1_20-50s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043699%3B1763047299%26q-key-time%3D1763043699%3B1763047299%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3Dfa3c7e7b9d554a2d348ab7801b1734b68b48af6a
+2025-11-13 22:21:39 - Calling AnalyzeVideo gRPC: sessionId=18, windowIndex=1, model=qwen
+2025-11-13 22:21:39 - 🚀 [URL-TRACK] Sending to ai-service via gRPC: sessionId=18, windowIndex=1, videoUrl=https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w1_20-50s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043699%3B1763047299%26q-key-time%3D1763043699%3B1763047299%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3Dfa3c7e7b9d554a2d348ab7801b1734b68b48af6a
+2025-11-13 22:21:41 - ConcatVideos completed: output=/Users/hupax/ski/temp/18/master_temp.webm
+2025-11-13 22:21:41 - Calling GetVideoDuration gRPC: video=/Users/hupax/ski/temp/18/master_video.webm
+2025-11-13 22:21:42 - Received video upload: sessionId=18, userId=4, chunkIndex=4, size=8525400
+2025-11-13 22:21:42 - Saved temporary file: sessionId=18, chunkIndex=4, path=/Users/hupax/ski/temp/18/chunk_4_1763043702015.webm
+2025-11-13 22:21:42 - Created video chunk: sessionId=18, chunkIndex=4, id=59
+2025-11-13 22:21:42 - Starting video processing: sessionId=18, chunkId=59, mode=SLIDING_WINDOW, isLastChunk=true
+2025-11-13 22:21:42 - Updated session status: sessionId=18, status=ANALYZING
+2025-11-13 22:21:42 - Processing in SLIDING_WINDOW mode (NEW): sessionId=18, isLastChunk=true
+2025-11-13 22:21:42 - Calling ConcatVideos gRPC: 2 videos
+2025-11-13 22:21:42 - GetVideoDuration completed: duration=139.84800720214844s
+2025-11-13 22:21:42 - Appended to master video: new length=139.84800720214844s (actual from FFmpeg)
+2025-11-13 22:21:42 - Checking window analysis trigger for session 18: masterLength=139.84800720214844s, lastWindowStart=-20.0s, isLastChunk=false
+2025-11-13 22:21:42 - Trigger condition met (normalTrigger=true, lastChunkTrigger=false): analyzing window 2, range=[0.0, 30.0]s (clamped from 30.0s), currentVideoLength=139.84800720214844s
+2025-11-13 22:21:42 - Extracting and analyzing window 2: [0.0, 30.0]s
+2025-11-13 22:21:42 - Calling ExtractSegment gRPC: video=/Users/hupax/ski/temp/18/master_video.webm, range=[0.0s, 30.0s]
+2025-11-13 22:21:42 - ExtractSegment completed: output=/Users/hupax/ski/temp/18/window_2.webm
+2025-11-13 22:21:42 - COS bucket verified: jxzmnjcvm-1332406476
+2025-11-13 22:21:44 - Uploaded file to COS: /Users/hupax/ski/temp/18/window_2.webm -> sessions/18/windows/w2_0-30s.webm
+2025-11-13 22:21:44 - 🎥 Generated URL for window 2: https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w2_0-30s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043704%3B1763047304%26q-key-time%3D1763043704%3B1763047304%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D573c2124a2ed47fab0fd8f736106627a0b4a059a
+2025-11-13 22:21:44 - Calling AnalyzeVideo gRPC: sessionId=18, windowIndex=2, model=qwen
+2025-11-13 22:21:44 - 🚀 [URL-TRACK] Sending to ai-service via gRPC: sessionId=18, windowIndex=2, videoUrl=https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w2_0-30s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043704%3B1763047304%26q-key-time%3D1763043704%3B1763047304%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D573c2124a2ed47fab0fd8f736106627a0b4a059a
+2025-11-13 22:21:48 - RefineAnalysis completed: length=589
+2025-11-13 22:21:48 - Window 1 analysis refined: length=589
+2025-11-13 22:21:48 - Saved analysis record with raw: sessionId=18, windowIndex=1, raw=588, refined=589
+2025-11-13 22:21:48 - Deleted local file: /Users/hupax/ski/temp/18/window_1.webm
+2025-11-13 22:21:48 - Deleted object from COS: sessions/18/windows/w1_0-30s.webm
+2025-11-13 22:21:48 - Window 1 analysis completed, refined length=589
+2025-11-13 22:21:48 - Trigger condition met (normalTrigger=true, lastChunkTrigger=false): analyzing window 2, range=[20.0, 50.0]s (clamped from 50.0s), currentVideoLength=104.8290023803711s
+2025-11-13 22:21:48 - Extracting and analyzing window 2: [20.0, 50.0]s
+2025-11-13 22:21:48 - Calling ExtractSegment gRPC: video=/Users/hupax/ski/temp/18/master_video.webm, range=[20.0s, 50.0s]
+2025-11-13 22:21:48 - ExtractSegment completed: output=/Users/hupax/ski/temp/18/window_2.webm
+2025-11-13 22:21:48 - COS bucket verified: jxzmnjcvm-1332406476
+2025-11-13 22:21:49 - Uploaded file to COS: /Users/hupax/ski/temp/18/window_2.webm -> sessions/18/windows/w2_20-50s.webm
+2025-11-13 22:21:49 - 🎥 Generated URL for window 2: https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w2_20-50s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043709%3B1763047309%26q-key-time%3D1763043709%3B1763047309%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D8d622f1c3b1d912212965bcbb62da9750d6b7a4b
+2025-11-13 22:21:49 - Calling AnalyzeVideo gRPC: sessionId=18, windowIndex=2, model=qwen
+2025-11-13 22:21:49 - 🚀 [URL-TRACK] Sending to ai-service via gRPC: sessionId=18, windowIndex=2, videoUrl=https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w2_20-50s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043709%3B1763047309%26q-key-time%3D1763043709%3B1763047309%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D8d622f1c3b1d912212965bcbb62da9750d6b7a4b
+2025-11-13 22:21:53 - AnalyzeVideo completed: sessionId=18, windowIndex=1
+2025-11-13 22:21:53 - Window 1 raw analysis completed: length=711
+2025-11-13 22:21:53 - Calling RefineAnalysis gRPC: session=18, window=1, model=qwen
+2025-11-13 22:21:55 - AnalyzeVideo completed: sessionId=18, windowIndex=2
+2025-11-13 22:21:55 - Window 2 raw analysis completed: length=438
+2025-11-13 22:21:55 - Calling RefineAnalysis gRPC: session=18, window=2, model=qwen
+2025-11-13 22:22:02 - RefineAnalysis completed: length=438
+2025-11-13 22:22:02 - Window 2 analysis refined: length=438
+2025-11-13 22:22:02 - Saved analysis record with raw: sessionId=18, windowIndex=2, raw=438, refined=438
+2025-11-13 22:22:02 - Deleted local file: /Users/hupax/ski/temp/18/window_2.webm
+2025-11-13 22:22:02 - Deleted object from COS: sessions/18/windows/w2_0-30s.webm
+2025-11-13 22:22:02 - Window 2 analysis completed, refined length=438
+2025-11-13 22:22:02 - Trigger condition met (normalTrigger=true, lastChunkTrigger=false): analyzing window 3, range=[20.0, 50.0]s (clamped from 50.0s), currentVideoLength=139.84800720214844s
+2025-11-13 22:22:02 - Extracting and analyzing window 3: [20.0, 50.0]s
+2025-11-13 22:22:02 - Calling ExtractSegment gRPC: video=/Users/hupax/ski/temp/18/master_video.webm, range=[20.0s, 50.0s]
+2025-11-13 22:22:02 - ExtractSegment completed: output=/Users/hupax/ski/temp/18/window_3.webm
+2025-11-13 22:22:02 - COS bucket verified: jxzmnjcvm-1332406476
+2025-11-13 22:22:03 - ConcatVideos completed: output=/Users/hupax/ski/temp/18/master_temp.webm
+2025-11-13 22:22:03 - Calling GetVideoDuration gRPC: video=/Users/hupax/ski/temp/18/master_video.webm
+2025-11-13 22:22:03 - GetVideoDuration completed: duration=164.66000366210938s
+2025-11-13 22:22:03 - Appended to master video: new length=164.66000366210938s (actual from FFmpeg)
+2025-11-13 22:22:03 - Checking window analysis trigger for session 18: masterLength=164.66000366210938s, lastWindowStart=0.0s, isLastChunk=true
+2025-11-13 22:22:03 - Trigger condition met (normalTrigger=true, lastChunkTrigger=true): analyzing window 4, range=[20.0, 50.0]s (clamped from 50.0s), currentVideoLength=164.66000366210938s
+2025-11-13 22:22:03 - Extracting and analyzing window 4: [20.0, 50.0]s
+2025-11-13 22:22:03 - Calling ExtractSegment gRPC: video=/Users/hupax/ski/temp/18/master_video.webm, range=[20.0s, 50.0s]
+2025-11-13 22:22:03 - ExtractSegment completed: output=/Users/hupax/ski/temp/18/window_4.webm
+2025-11-13 22:22:04 - COS bucket verified: jxzmnjcvm-1332406476
+2025-11-13 22:22:04 - Uploaded file to COS: /Users/hupax/ski/temp/18/window_3.webm -> sessions/18/windows/w3_20-50s.webm
+2025-11-13 22:22:04 - 🎥 Generated URL for window 3: https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w3_20-50s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043724%3B1763047324%26q-key-time%3D1763043724%3B1763047324%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3Db9796b8fcb81d21a33523ab54421f91f96002efb
+2025-11-13 22:22:04 - Calling AnalyzeVideo gRPC: sessionId=18, windowIndex=3, model=qwen
+2025-11-13 22:22:04 - 🚀 [URL-TRACK] Sending to ai-service via gRPC: sessionId=18, windowIndex=3, videoUrl=https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w3_20-50s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043724%3B1763047324%26q-key-time%3D1763043724%3B1763047324%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3Db9796b8fcb81d21a33523ab54421f91f96002efb
+2025-11-13 22:22:05 - Uploaded file to COS: /Users/hupax/ski/temp/18/window_4.webm -> sessions/18/windows/w4_20-50s.webm
+2025-11-13 22:22:05 - 🎥 Generated URL for window 4: https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w4_20-50s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043725%3B1763047325%26q-key-time%3D1763043725%3B1763047325%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3Da0b0e6915a72c78937a41efe736169efa76ba3a6
+2025-11-13 22:22:05 - Calling AnalyzeVideo gRPC: sessionId=18, windowIndex=4, model=qwen
+2025-11-13 22:22:05 - 🚀 [URL-TRACK] Sending to ai-service via gRPC: sessionId=18, windowIndex=4, videoUrl=https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w4_20-50s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043725%3B1763047325%26q-key-time%3D1763043725%3B1763047325%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3Da0b0e6915a72c78937a41efe736169efa76ba3a6
+2025-11-13 22:22:06 - RefineAnalysis completed: length=711
+2025-11-13 22:22:06 - Window 1 analysis refined: length=711
+2025-11-13 22:22:06 - Saved analysis record with raw: sessionId=18, windowIndex=1, raw=711, refined=711
+2025-11-13 22:22:06 - Deleted object from COS: sessions/18/windows/w1_20-50s.webm
+2025-11-13 22:22:06 - Window 1 analysis completed, refined length=711
+2025-11-13 22:22:06 - Not enough video length for next window: current=69.84100341796875s, needed=70.0s
+2025-11-13 22:22:06 - Window analysis batch completed for session 18
+2025-11-13 22:22:06 - Sliding window mode processing completed: sessionId=18, masterLength=69.84100341796875s
+2025-11-13 22:22:06 - Video processing completed: sessionId=18, chunkId=56
+2025-11-13 22:22:06 - Deleted local file: /Users/hupax/ski/temp/18/chunk_1_1763043607171.webm
+2025-11-13 22:22:06 - Cleanup completed: sessionId=18, chunkId=56, sessionFinished=false, keepVideo=false
+2025-11-13 22:22:06 - AnalyzeVideo completed: sessionId=18, windowIndex=2
+2025-11-13 22:22:06 - Window 2 raw analysis completed: length=619
+2025-11-13 22:22:06 - Calling RefineAnalysis gRPC: session=18, window=2, model=qwen
+2025-11-13 22:22:17 - AnalyzeVideo completed: sessionId=18, windowIndex=3
+2025-11-13 22:22:17 - Window 3 raw analysis completed: length=809
+2025-11-13 22:22:17 - Calling RefineAnalysis gRPC: session=18, window=3, model=qwen
+2025-11-13 22:22:18 - RefineAnalysis completed: length=619
+2025-11-13 22:22:18 - Window 2 analysis refined: length=619
+2025-11-13 22:22:18 - Saved analysis record with raw: sessionId=18, windowIndex=2, raw=619, refined=619
+2025-11-13 22:22:18 - Deleted object from COS: sessions/18/windows/w2_20-50s.webm
+2025-11-13 22:22:18 - Window 2 analysis completed, refined length=619
+2025-11-13 22:22:18 - Trigger condition met (normalTrigger=true, lastChunkTrigger=false): analyzing window 3, range=[40.0, 70.0]s (clamped from 70.0s), currentVideoLength=104.8290023803711s
+2025-11-13 22:22:18 - Extracting and analyzing window 3: [40.0, 70.0]s
+2025-11-13 22:22:18 - Calling ExtractSegment gRPC: video=/Users/hupax/ski/temp/18/master_video.webm, range=[40.0s, 70.0s]
+2025-11-13 22:22:19 - ExtractSegment completed: output=/Users/hupax/ski/temp/18/window_3.webm
+2025-11-13 22:22:19 - COS bucket verified: jxzmnjcvm-1332406476
+2025-11-13 22:22:19 - Uploaded file to COS: /Users/hupax/ski/temp/18/window_3.webm -> sessions/18/windows/w3_40-70s.webm
+2025-11-13 22:22:19 - 🎥 Generated URL for window 3: https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w3_40-70s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043739%3B1763047339%26q-key-time%3D1763043739%3B1763047339%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3Db4f6cf209ed0764f471d66319eef0fb1f6994af4
+2025-11-13 22:22:19 - Calling AnalyzeVideo gRPC: sessionId=18, windowIndex=3, model=qwen
+2025-11-13 22:22:19 - 🚀 [URL-TRACK] Sending to ai-service via gRPC: sessionId=18, windowIndex=3, videoUrl=https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w3_40-70s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043739%3B1763047339%26q-key-time%3D1763043739%3B1763047339%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3Db4f6cf209ed0764f471d66319eef0fb1f6994af4
+2025-11-13 22:22:21 - AnalyzeVideo completed: sessionId=18, windowIndex=4
+2025-11-13 22:22:21 - Window 4 raw analysis completed: length=731
+2025-11-13 22:22:21 - Calling RefineAnalysis gRPC: session=18, window=4, model=qwen
+2025-11-13 22:22:29 - AnalyzeVideo completed: sessionId=18, windowIndex=3
+2025-11-13 22:22:29 - Window 3 raw analysis completed: length=616
+2025-11-13 22:22:29 - Calling RefineAnalysis gRPC: session=18, window=3, model=qwen
+2025-11-13 22:22:31 - RefineAnalysis completed: length=809
+2025-11-13 22:22:31 - Window 3 analysis refined: length=809
+2025-11-13 22:22:31 - Saved analysis record with raw: sessionId=18, windowIndex=3, raw=809, refined=809
+2025-11-13 22:22:31 - Deleted local file: /Users/hupax/ski/temp/18/window_3.webm
+2025-11-13 22:22:31 - Deleted object from COS: sessions/18/windows/w3_20-50s.webm
+2025-11-13 22:22:31 - Window 3 analysis completed, refined length=809
+2025-11-13 22:22:31 - Trigger condition met (normalTrigger=true, lastChunkTrigger=false): analyzing window 4, range=[40.0, 70.0]s (clamped from 70.0s), currentVideoLength=139.84800720214844s
+2025-11-13 22:22:31 - Extracting and analyzing window 4: [40.0, 70.0]s
+2025-11-13 22:22:31 - Calling ExtractSegment gRPC: video=/Users/hupax/ski/temp/18/master_video.webm, range=[40.0s, 70.0s]
+2025-11-13 22:22:34 - RefineAnalysis completed: length=731
+2025-11-13 22:22:34 - Window 4 analysis refined: length=731
+2025-11-13 22:22:34 - Saved analysis record with raw: sessionId=18, windowIndex=4, raw=731, refined=731
+2025-11-13 22:22:34 - Deleted local file: /Users/hupax/ski/temp/18/window_4.webm
+2025-11-13 22:22:34 - Deleted object from COS: sessions/18/windows/w4_20-50s.webm
+2025-11-13 22:22:34 - Window 4 analysis completed, refined length=731
+2025-11-13 22:22:34 - Trigger condition met (normalTrigger=true, lastChunkTrigger=true): analyzing window 5, range=[40.0, 70.0]s (clamped from 70.0s), currentVideoLength=164.66000366210938s
+2025-11-13 22:22:34 - Extracting and analyzing window 5: [40.0, 70.0]s
+2025-11-13 22:22:34 - Calling ExtractSegment gRPC: video=/Users/hupax/ski/temp/18/master_video.webm, range=[40.0s, 70.0s]
+2025-11-13 22:22:34 - ExtractSegment completed: output=/Users/hupax/ski/temp/18/window_4.webm
+2025-11-13 22:22:34 - ExtractSegment completed: output=/Users/hupax/ski/temp/18/window_5.webm
+2025-11-13 22:22:34 - COS bucket verified: jxzmnjcvm-1332406476
+2025-11-13 22:22:34 - COS bucket verified: jxzmnjcvm-1332406476
+2025-11-13 22:22:35 - Uploaded file to COS: /Users/hupax/ski/temp/18/window_4.webm -> sessions/18/windows/w4_40-70s.webm
+2025-11-13 22:22:35 - 🎥 Generated URL for window 4: https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w4_40-70s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043755%3B1763047355%26q-key-time%3D1763043755%3B1763047355%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D31bba448603022702e2c9d6e1eb32c10504610cc
+2025-11-13 22:22:35 - Calling AnalyzeVideo gRPC: sessionId=18, windowIndex=4, model=qwen
+2025-11-13 22:22:35 - 🚀 [URL-TRACK] Sending to ai-service via gRPC: sessionId=18, windowIndex=4, videoUrl=https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w4_40-70s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043755%3B1763047355%26q-key-time%3D1763043755%3B1763047355%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D31bba448603022702e2c9d6e1eb32c10504610cc
+2025-11-13 22:22:35 - Uploaded file to COS: /Users/hupax/ski/temp/18/window_5.webm -> sessions/18/windows/w5_40-70s.webm
+2025-11-13 22:22:35 - 🎥 Generated URL for window 5: https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w5_40-70s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043755%3B1763047355%26q-key-time%3D1763043755%3B1763047355%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D877d61c7655dd6a0030d0f7c12386cda79512730
+2025-11-13 22:22:35 - Calling AnalyzeVideo gRPC: sessionId=18, windowIndex=5, model=qwen
+2025-11-13 22:22:35 - 🚀 [URL-TRACK] Sending to ai-service via gRPC: sessionId=18, windowIndex=5, videoUrl=https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w5_40-70s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043755%3B1763047355%26q-key-time%3D1763043755%3B1763047355%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D877d61c7655dd6a0030d0f7c12386cda79512730
+2025-11-13 22:22:39 - RefineAnalysis completed: length=616
+2025-11-13 22:22:39 - Window 3 analysis refined: length=616
+2025-11-13 22:22:39 - Saved analysis record with raw: sessionId=18, windowIndex=3, raw=616, refined=616
+2025-11-13 22:22:39 - Deleted object from COS: sessions/18/windows/w3_40-70s.webm
+2025-11-13 22:22:39 - Window 3 analysis completed, refined length=616
+2025-11-13 22:22:39 - Trigger condition met (normalTrigger=true, lastChunkTrigger=false): analyzing window 4, range=[60.0, 90.0]s (clamped from 90.0s), currentVideoLength=104.8290023803711s
+2025-11-13 22:22:39 - Extracting and analyzing window 4: [60.0, 90.0]s
+2025-11-13 22:22:39 - Calling ExtractSegment gRPC: video=/Users/hupax/ski/temp/18/master_video.webm, range=[60.0s, 90.0s]
+2025-11-13 22:22:39 - ExtractSegment completed: output=/Users/hupax/ski/temp/18/window_4.webm
+2025-11-13 22:22:39 - COS bucket verified: jxzmnjcvm-1332406476
+2025-11-13 22:22:40 - Uploaded file to COS: /Users/hupax/ski/temp/18/window_4.webm -> sessions/18/windows/w4_60-90s.webm
+2025-11-13 22:22:40 - 🎥 Generated URL for window 4: https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w4_60-90s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043760%3B1763047360%26q-key-time%3D1763043760%3B1763047360%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3Ddc5f52fad1201f1a1bf536da2fa5edcafd620303
+2025-11-13 22:22:40 - Calling AnalyzeVideo gRPC: sessionId=18, windowIndex=4, model=qwen
+2025-11-13 22:22:40 - 🚀 [URL-TRACK] Sending to ai-service via gRPC: sessionId=18, windowIndex=4, videoUrl=https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w4_60-90s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043760%3B1763047360%26q-key-time%3D1763043760%3B1763047360%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3Ddc5f52fad1201f1a1bf536da2fa5edcafd620303
+2025-11-13 22:22:43 - AnalyzeVideo completed: sessionId=18, windowIndex=5
+2025-11-13 22:22:43 - Window 5 raw analysis completed: length=498
+2025-11-13 22:22:43 - Calling RefineAnalysis gRPC: session=18, window=5, model=qwen
+2025-11-13 22:22:45 - AnalyzeVideo completed: sessionId=18, windowIndex=4
+2025-11-13 22:22:45 - Window 4 raw analysis completed: length=681
+2025-11-13 22:22:45 - Calling RefineAnalysis gRPC: session=18, window=4, model=qwen
+2025-11-13 22:22:51 - RefineAnalysis completed: length=498
+2025-11-13 22:22:51 - Window 5 analysis refined: length=498
+2025-11-13 22:22:51 - Saved analysis record with raw: sessionId=18, windowIndex=5, raw=498, refined=498
+2025-11-13 22:22:51 - Deleted local file: /Users/hupax/ski/temp/18/window_5.webm
+2025-11-13 22:22:51 - Deleted object from COS: sessions/18/windows/w5_40-70s.webm
+2025-11-13 22:22:51 - Window 5 analysis completed, refined length=498
+2025-11-13 22:22:51 - Trigger condition met (normalTrigger=true, lastChunkTrigger=true): analyzing window 6, range=[60.0, 90.0]s (clamped from 90.0s), currentVideoLength=164.66000366210938s
+2025-11-13 22:22:51 - Extracting and analyzing window 6: [60.0, 90.0]s
+2025-11-13 22:22:51 - Calling ExtractSegment gRPC: video=/Users/hupax/ski/temp/18/master_video.webm, range=[60.0s, 90.0s]
+2025-11-13 22:22:51 - ExtractSegment completed: output=/Users/hupax/ski/temp/18/window_6.webm
+2025-11-13 22:22:51 - COS bucket verified: jxzmnjcvm-1332406476
+2025-11-13 22:22:52 - Uploaded file to COS: /Users/hupax/ski/temp/18/window_6.webm -> sessions/18/windows/w6_60-90s.webm
+2025-11-13 22:22:52 - 🎥 Generated URL for window 6: https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w6_60-90s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043772%3B1763047372%26q-key-time%3D1763043772%3B1763047372%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3Db63fa0702783bde898304b8562e7897482d2b198
+2025-11-13 22:22:52 - Calling AnalyzeVideo gRPC: sessionId=18, windowIndex=6, model=qwen
+2025-11-13 22:22:52 - 🚀 [URL-TRACK] Sending to ai-service via gRPC: sessionId=18, windowIndex=6, videoUrl=https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w6_60-90s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043772%3B1763047372%26q-key-time%3D1763043772%3B1763047372%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3Db63fa0702783bde898304b8562e7897482d2b198
+2025-11-13 22:22:55 - RefineAnalysis completed: length=681
+2025-11-13 22:22:55 - Window 4 analysis refined: length=681
+2025-11-13 22:22:55 - Saved analysis record with raw: sessionId=18, windowIndex=4, raw=681, refined=681
+2025-11-13 22:22:55 - Deleted local file: /Users/hupax/ski/temp/18/window_4.webm
+2025-11-13 22:22:55 - Deleted object from COS: sessions/18/windows/w4_40-70s.webm
+2025-11-13 22:22:55 - Window 4 analysis completed, refined length=681
+2025-11-13 22:22:55 - Trigger condition met (normalTrigger=true, lastChunkTrigger=false): analyzing window 5, range=[60.0, 90.0]s (clamped from 90.0s), currentVideoLength=139.84800720214844s
+2025-11-13 22:22:55 - Extracting and analyzing window 5: [60.0, 90.0]s
+2025-11-13 22:22:55 - Calling ExtractSegment gRPC: video=/Users/hupax/ski/temp/18/master_video.webm, range=[60.0s, 90.0s]
+2025-11-13 22:22:57 - ExtractSegment completed: output=/Users/hupax/ski/temp/18/window_5.webm
+2025-11-13 22:22:57 - COS bucket verified: jxzmnjcvm-1332406476
+2025-11-13 22:22:58 - Uploaded file to COS: /Users/hupax/ski/temp/18/window_5.webm -> sessions/18/windows/w5_60-90s.webm
+2025-11-13 22:22:58 - 🎥 Generated URL for window 5: https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w5_60-90s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043778%3B1763047378%26q-key-time%3D1763043778%3B1763047378%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D0732ced0578ad1e06a4c663b57c39369a43c781a
+2025-11-13 22:22:58 - Calling AnalyzeVideo gRPC: sessionId=18, windowIndex=5, model=qwen
+2025-11-13 22:22:58 - 🚀 [URL-TRACK] Sending to ai-service via gRPC: sessionId=18, windowIndex=5, videoUrl=https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w5_60-90s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043778%3B1763047378%26q-key-time%3D1763043778%3B1763047378%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D0732ced0578ad1e06a4c663b57c39369a43c781a
+2025-11-13 22:22:58 - AnalyzeVideo completed: sessionId=18, windowIndex=4
+2025-11-13 22:22:58 - Window 4 raw analysis completed: length=655
+2025-11-13 22:22:58 - Calling RefineAnalysis gRPC: session=18, window=4, model=qwen
+2025-11-13 22:23:07 - AnalyzeVideo completed: sessionId=18, windowIndex=6
+2025-11-13 22:23:07 - Window 6 raw analysis completed: length=864
+2025-11-13 22:23:07 - Calling RefineAnalysis gRPC: session=18, window=6, model=qwen
+2025-11-13 22:23:08 - RefineAnalysis completed: length=653
+2025-11-13 22:23:08 - Window 4 analysis refined: length=653
+2025-11-13 22:23:08 - Saved analysis record with raw: sessionId=18, windowIndex=4, raw=655, refined=653
+2025-11-13 22:23:08 - Deleted object from COS: sessions/18/windows/w4_60-90s.webm
+2025-11-13 22:23:08 - Window 4 analysis completed, refined length=653
+2025-11-13 22:23:08 - Not enough video length for next window: current=104.8290023803711s, needed=110.0s
+2025-11-13 22:23:08 - Window analysis batch completed for session 18
+2025-11-13 22:23:08 - Sliding window mode processing completed: sessionId=18, masterLength=104.8290023803711s
+2025-11-13 22:23:08 - Video processing completed: sessionId=18, chunkId=57
+2025-11-13 22:23:08 - Deleted local file: /Users/hupax/ski/temp/18/chunk_2_1763043642178.webm
+2025-11-13 22:23:08 - Cleanup completed: sessionId=18, chunkId=57, sessionFinished=false, keepVideo=false
+2025-11-13 22:23:18 - AnalyzeVideo completed: sessionId=18, windowIndex=5
+2025-11-13 22:23:18 - Window 5 raw analysis completed: length=563
+2025-11-13 22:23:18 - Calling RefineAnalysis gRPC: session=18, window=5, model=qwen
+2025-11-13 22:23:19 - RefineAnalysis completed: length=864
+2025-11-13 22:23:19 - Window 6 analysis refined: length=864
+2025-11-13 22:23:19 - Saved analysis record with raw: sessionId=18, windowIndex=6, raw=864, refined=864
+2025-11-13 22:23:19 - Deleted local file: /Users/hupax/ski/temp/18/window_6.webm
+2025-11-13 22:23:19 - Deleted object from COS: sessions/18/windows/w6_60-90s.webm
+2025-11-13 22:23:19 - Window 6 analysis completed, refined length=864
+2025-11-13 22:23:19 - Trigger condition met (normalTrigger=true, lastChunkTrigger=true): analyzing window 7, range=[80.0, 110.0]s (clamped from 110.0s), currentVideoLength=164.66000366210938s
+2025-11-13 22:23:19 - Extracting and analyzing window 7: [80.0, 110.0]s
+2025-11-13 22:23:19 - Calling ExtractSegment gRPC: video=/Users/hupax/ski/temp/18/master_video.webm, range=[80.0s, 110.0s]
+2025-11-13 22:23:23 - ExtractSegment completed: output=/Users/hupax/ski/temp/18/window_7.webm
+2025-11-13 22:23:23 - COS bucket verified: jxzmnjcvm-1332406476
+2025-11-13 22:23:23 - Uploaded file to COS: /Users/hupax/ski/temp/18/window_7.webm -> sessions/18/windows/w7_80-110s.webm
+2025-11-13 22:23:23 - 🎥 Generated URL for window 7: https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w7_80-110s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043803%3B1763047403%26q-key-time%3D1763043803%3B1763047403%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D8f6147f4cca6925b6665d429415d5bcfd0ac8969
+2025-11-13 22:23:23 - Calling AnalyzeVideo gRPC: sessionId=18, windowIndex=7, model=qwen
+2025-11-13 22:23:23 - 🚀 [URL-TRACK] Sending to ai-service via gRPC: sessionId=18, windowIndex=7, videoUrl=https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w7_80-110s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043803%3B1763047403%26q-key-time%3D1763043803%3B1763047403%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D8f6147f4cca6925b6665d429415d5bcfd0ac8969
+2025-11-13 22:23:28 - RefineAnalysis completed: length=563
+2025-11-13 22:23:28 - Window 5 analysis refined: length=563
+2025-11-13 22:23:28 - Saved analysis record with raw: sessionId=18, windowIndex=5, raw=563, refined=563
+2025-11-13 22:23:28 - Deleted local file: /Users/hupax/ski/temp/18/window_5.webm
+2025-11-13 22:23:28 - Deleted object from COS: sessions/18/windows/w5_60-90s.webm
+2025-11-13 22:23:28 - Window 5 analysis completed, refined length=563
+2025-11-13 22:23:28 - Trigger condition met (normalTrigger=true, lastChunkTrigger=false): analyzing window 6, range=[80.0, 110.0]s (clamped from 110.0s), currentVideoLength=139.84800720214844s
+2025-11-13 22:23:28 - Extracting and analyzing window 6: [80.0, 110.0]s
+2025-11-13 22:23:28 - Calling ExtractSegment gRPC: video=/Users/hupax/ski/temp/18/master_video.webm, range=[80.0s, 110.0s]
+2025-11-13 22:23:28 - ExtractSegment completed: output=/Users/hupax/ski/temp/18/window_6.webm
+2025-11-13 22:23:28 - COS bucket verified: jxzmnjcvm-1332406476
+2025-11-13 22:23:29 - Uploaded file to COS: /Users/hupax/ski/temp/18/window_6.webm -> sessions/18/windows/w6_80-110s.webm
+2025-11-13 22:23:29 - 🎥 Generated URL for window 6: https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w6_80-110s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043809%3B1763047409%26q-key-time%3D1763043809%3B1763047409%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3Dc4d03bb110fed8f0b20fa8d3ba4b7a9ac92628ee
+2025-11-13 22:23:29 - Calling AnalyzeVideo gRPC: sessionId=18, windowIndex=6, model=qwen
+2025-11-13 22:23:29 - 🚀 [URL-TRACK] Sending to ai-service via gRPC: sessionId=18, windowIndex=6, videoUrl=https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w6_80-110s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043809%3B1763047409%26q-key-time%3D1763043809%3B1763047409%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3Dc4d03bb110fed8f0b20fa8d3ba4b7a9ac92628ee
+2025-11-13 22:23:33 - AnalyzeVideo completed: sessionId=18, windowIndex=7
+2025-11-13 22:23:33 - Window 7 raw analysis completed: length=659
+2025-11-13 22:23:33 - Calling RefineAnalysis gRPC: session=18, window=7, model=qwen
+2025-11-13 22:23:38 - AnalyzeVideo completed: sessionId=18, windowIndex=6
+2025-11-13 22:23:38 - Window 6 raw analysis completed: length=704
+2025-11-13 22:23:38 - Calling RefineAnalysis gRPC: session=18, window=6, model=qwen
+2025-11-13 22:23:44 - RefineAnalysis completed: length=659
+2025-11-13 22:23:44 - Window 7 analysis refined: length=659
+2025-11-13 22:23:44 - Saved analysis record with raw: sessionId=18, windowIndex=7, raw=659, refined=659
+2025-11-13 22:23:44 - Deleted local file: /Users/hupax/ski/temp/18/window_7.webm
+2025-11-13 22:23:44 - Deleted object from COS: sessions/18/windows/w7_80-110s.webm
+2025-11-13 22:23:44 - Window 7 analysis completed, refined length=659
+2025-11-13 22:23:44 - Trigger condition met (normalTrigger=true, lastChunkTrigger=true): analyzing window 8, range=[100.0, 130.0]s (clamped from 130.0s), currentVideoLength=164.66000366210938s
+2025-11-13 22:23:44 - Extracting and analyzing window 8: [100.0, 130.0]s
+2025-11-13 22:23:44 - Calling ExtractSegment gRPC: video=/Users/hupax/ski/temp/18/master_video.webm, range=[100.0s, 130.0s]
+2025-11-13 22:23:44 - ExtractSegment completed: output=/Users/hupax/ski/temp/18/window_8.webm
+2025-11-13 22:23:44 - COS bucket verified: jxzmnjcvm-1332406476
+2025-11-13 22:23:45 - Uploaded file to COS: /Users/hupax/ski/temp/18/window_8.webm -> sessions/18/windows/w8_100-130s.webm
+2025-11-13 22:23:45 - 🎥 Generated URL for window 8: https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w8_100-130s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043825%3B1763047425%26q-key-time%3D1763043825%3B1763047425%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D246b8025280d45d1b168b819c6d443ee24667b78
+2025-11-13 22:23:45 - Calling AnalyzeVideo gRPC: sessionId=18, windowIndex=8, model=qwen
+2025-11-13 22:23:45 - 🚀 [URL-TRACK] Sending to ai-service via gRPC: sessionId=18, windowIndex=8, videoUrl=https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w8_100-130s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043825%3B1763047425%26q-key-time%3D1763043825%3B1763047425%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D246b8025280d45d1b168b819c6d443ee24667b78
+2025-11-13 22:23:49 - RefineAnalysis completed: length=704
+2025-11-13 22:23:49 - Window 6 analysis refined: length=704
+2025-11-13 22:23:49 - Saved analysis record with raw: sessionId=18, windowIndex=6, raw=704, refined=704
+2025-11-13 22:23:49 - Deleted local file: /Users/hupax/ski/temp/18/window_6.webm
+2025-11-13 22:23:49 - Deleted object from COS: sessions/18/windows/w6_80-110s.webm
+2025-11-13 22:23:49 - Window 6 analysis completed, refined length=704
+2025-11-13 22:23:49 - Trigger condition met (normalTrigger=true, lastChunkTrigger=false): analyzing window 7, range=[100.0, 130.0]s (clamped from 130.0s), currentVideoLength=139.84800720214844s
+2025-11-13 22:23:49 - Extracting and analyzing window 7: [100.0, 130.0]s
+2025-11-13 22:23:49 - Calling ExtractSegment gRPC: video=/Users/hupax/ski/temp/18/master_video.webm, range=[100.0s, 130.0s]
+2025-11-13 22:23:49 - ExtractSegment completed: output=/Users/hupax/ski/temp/18/window_7.webm
+2025-11-13 22:23:49 - COS bucket verified: jxzmnjcvm-1332406476
+2025-11-13 22:23:51 - Uploaded file to COS: /Users/hupax/ski/temp/18/window_7.webm -> sessions/18/windows/w7_100-130s.webm
+2025-11-13 22:23:51 - 🎥 Generated URL for window 7: https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w7_100-130s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043831%3B1763047431%26q-key-time%3D1763043831%3B1763047431%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D889de8fbab6bc6e313e3292f1794da82e6cee657
+2025-11-13 22:23:51 - Calling AnalyzeVideo gRPC: sessionId=18, windowIndex=7, model=qwen
+2025-11-13 22:23:51 - 🚀 [URL-TRACK] Sending to ai-service via gRPC: sessionId=18, windowIndex=7, videoUrl=https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w7_100-130s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043831%3B1763047431%26q-key-time%3D1763043831%3B1763047431%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D889de8fbab6bc6e313e3292f1794da82e6cee657
+2025-11-13 22:23:55 - AnalyzeVideo completed: sessionId=18, windowIndex=8
+2025-11-13 22:23:55 - Window 8 raw analysis completed: length=714
+2025-11-13 22:23:55 - Calling RefineAnalysis gRPC: session=18, window=8, model=qwen
+2025-11-13 22:23:59 - AnalyzeVideo completed: sessionId=18, windowIndex=7
+2025-11-13 22:23:59 - Window 7 raw analysis completed: length=554
+2025-11-13 22:23:59 - Calling RefineAnalysis gRPC: session=18, window=7, model=qwen
+2025-11-13 22:24:08 - RefineAnalysis completed: length=714
+2025-11-13 22:24:08 - RefineAnalysis completed: length=554
+2025-11-13 22:24:08 - Window 8 analysis refined: length=714
+2025-11-13 22:24:08 - Window 7 analysis refined: length=554
+2025-11-13 22:24:08 - Saved analysis record with raw: sessionId=18, windowIndex=8, raw=714, refined=714
+2025-11-13 22:24:08 - Saved analysis record with raw: sessionId=18, windowIndex=7, raw=554, refined=554
+2025-11-13 22:24:08 - Deleted local file: /Users/hupax/ski/temp/18/window_8.webm
+2025-11-13 22:24:08 - Deleted local file: /Users/hupax/ski/temp/18/window_7.webm
+2025-11-13 22:24:08 - Deleted object from COS: sessions/18/windows/w8_100-130s.webm
+2025-11-13 22:24:08 - Window 8 analysis completed, refined length=714
+2025-11-13 22:24:08 - Trigger condition met (normalTrigger=true, lastChunkTrigger=true): analyzing window 9, range=[120.0, 150.0]s (clamped from 150.0s), currentVideoLength=164.66000366210938s
+2025-11-13 22:24:08 - Extracting and analyzing window 9: [120.0, 150.0]s
+2025-11-13 22:24:08 - Calling ExtractSegment gRPC: video=/Users/hupax/ski/temp/18/master_video.webm, range=[120.0s, 150.0s]
+2025-11-13 22:24:08 - ExtractSegment completed: output=/Users/hupax/ski/temp/18/window_9.webm
+2025-11-13 22:24:08 - COS bucket verified: jxzmnjcvm-1332406476
+2025-11-13 22:24:08 - Deleted object from COS: sessions/18/windows/w7_100-130s.webm
+2025-11-13 22:24:08 - Window 7 analysis completed, refined length=554
+2025-11-13 22:24:08 - Not enough video length for next window: current=139.84800720214844s, needed=150.0s
+2025-11-13 22:24:08 - Window analysis batch completed for session 18
+2025-11-13 22:24:08 - Sliding window mode processing completed: sessionId=18, masterLength=139.84800720214844s
+2025-11-13 22:24:08 - Video processing completed: sessionId=18, chunkId=58
+2025-11-13 22:24:08 - Deleted local file: /Users/hupax/ski/temp/18/chunk_3_1763043677174.webm
+2025-11-13 22:24:08 - Cleanup completed: sessionId=18, chunkId=58, sessionFinished=false, keepVideo=false
+2025-11-13 22:24:09 - Uploaded file to COS: /Users/hupax/ski/temp/18/window_9.webm -> sessions/18/windows/w9_120-150s.webm
+2025-11-13 22:24:09 - 🎥 Generated URL for window 9: https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w9_120-150s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043849%3B1763047449%26q-key-time%3D1763043849%3B1763047449%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D709f94530b963f51a017da64439ba0ed8d1ce503
+2025-11-13 22:24:09 - Calling AnalyzeVideo gRPC: sessionId=18, windowIndex=9, model=qwen
+2025-11-13 22:24:09 - 🚀 [URL-TRACK] Sending to ai-service via gRPC: sessionId=18, windowIndex=9, videoUrl=https://jxzmnjcvm-1332406476.cos.ap-guangzhou.myqcloud.com/sessions/18/windows/w9_120-150s.webm?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDv5CDC2g8MWQHxgQ3a2LRJ3fCg7Tjx441%26q-sign-time%3D1763043849%3B1763047449%26q-key-time%3D1763043849%3B1763047449%26q-header-list%3Dhost%26q-url-param-list%3D%26q-signature%3D709f94530b963f51a017da64439ba0ed8d1ce503
+2025-11-13 22:24:23 - AnalyzeVideo completed: sessionId=18, windowIndex=9
+2025-11-13 22:24:23 - Window 9 raw analysis completed: length=1057
+2025-11-13 22:24:23 - Calling RefineAnalysis gRPC: session=18, window=9, model=qwen
+2025-11-13 22:24:36 - RefineAnalysis completed: length=1057
+2025-11-13 22:24:36 - Window 9 analysis refined: length=1057
+2025-11-13 22:24:37 - Saved analysis record with raw: sessionId=18, windowIndex=9, raw=1057, refined=1057
+2025-11-13 22:24:37 - Deleted local file: /Users/hupax/ski/temp/18/window_9.webm
+2025-11-13 22:24:37 - Deleted object from COS: sessions/18/windows/w9_120-150s.webm
+2025-11-13 22:24:37 - Window 9 analysis completed, refined length=1057
+2025-11-13 22:24:37 - Trigger condition met (normalTrigger=false, lastChunkTrigger=true): analyzing window 10, range=[140.0, 164.66000366210938]s (clamped from 170.0s), currentVideoLength=164.66000366210938s
+2025-11-13 22:24:37 - Extracting and analyzing window 10: [140.0, 164.66000366210938]s
+2025-11-13 22:24:37 - Calling ExtractSegment gRPC: video=/Users/hupax/ski/temp/18/master_video.webm, range=[140.0s, 164.66000366210938s]
+2025-11-13 22:24:40 - Failed to call ExtractSegment gRPC: ExtractSegment failed: Segment extraction failed: Invalid time range: [140.0, 164.66000366210938] for video duration 164.66s
+2025-11-13 22:24:40 - Failed to extract/analyze window 10: Failed to call ExtractSegment gRPC
+com.skiuo.coreservice.exception.GrpcException: Failed to call ExtractSegment gRPC
+    at com.skiuo.coreservice.service.GrpcClientService.extractSegment(GrpcClientService.java:235)
+    at com.skiuo.coreservice.service.VideoProcessingService.extractAndAnalyzeWindow(VideoProcessingService.java:401)
+    at com.skiuo.coreservice.service.VideoProcessingService.checkAndAnalyzeWindows(VideoProcessingService.java:340)
+    at com.skiuo.coreservice.service.VideoProcessingService.processSlidingWindowMode(VideoProcessingService.java:200)
+    at com.skiuo.coreservice.service.VideoProcessingService.processVideoChunk(VideoProcessingService.java:62)
+    at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+    at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+    at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:360)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:196)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163)
+    at org.springframework.aop.interceptor.AsyncExecutionInterceptor.lambda$invoke$0(AsyncExecutionInterceptor.java:114)
+    at org.springframework.util.concurrent.FutureUtils.lambda$toSupplier$0(FutureUtils.java:74)
+    at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1768)
+    at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+    at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+    at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: com.skiuo.coreservice.exception.GrpcException: ExtractSegment failed: Segment extraction failed: Invalid time range: [140.0, 164.66000366210938] for video duration 164.66s
+    at com.skiuo.coreservice.service.GrpcClientService.extractSegment(GrpcClientService.java:227)
+    ... 15 common frames omitted
+2025-11-13 22:24:40 - Video processing failed: sessionId=18, chunkId=59, error=Failed to extract/analyze window
+2025-11-13 22:24:40 - Updated session status: sessionId=18, status=FAILED

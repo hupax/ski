@@ -1,5 +1,6 @@
 package com.skiuo.coreservice.entity;
 
+import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -32,6 +33,7 @@ public class UserMemory {
      *   "behavior_patterns": { "workflows": [...], "problem_solving": [...], "project_types": [...] }
      * }
      */
+    @Type(JsonBinaryType.class)
     @Column(name = "memory_data", columnDefinition = "jsonb", nullable = false)
     private String memoryData;
 

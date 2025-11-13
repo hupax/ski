@@ -15,4 +15,6 @@ public interface VideoChunkRepository extends JpaRepository<VideoChunk, Long> {
     Optional<VideoChunk> findBySessionIdAndChunkIndex(Long sessionId, Integer chunkIndex);
 
     List<VideoChunk> findByStatus(VideoChunk.ChunkStatus status);
+
+    void deleteBySessionId(Long sessionId);
 }

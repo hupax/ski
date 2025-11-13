@@ -320,7 +320,7 @@ public class GrpcClientService {
                     .build();
 
             GenerateTitleResponse response = blockingStub
-                    .withDeadlineAfter(180, TimeUnit.SECONDS)
+                    .withDeadlineAfter(300, TimeUnit.SECONDS)
                     .generateTitle(request);
 
             if (response.getError() != null && !response.getError().isEmpty()) {
@@ -367,7 +367,7 @@ public class GrpcClientService {
                     .build();
 
             RefineAnalysisResponse response = blockingStub
-                    .withDeadlineAfter(180, TimeUnit.SECONDS)
+                    .withDeadlineAfter(300, TimeUnit.SECONDS)
                     .refineAnalysis(request);
 
             if (response.getError() != null && !response.getError().isEmpty()) {
@@ -406,7 +406,7 @@ public class GrpcClientService {
                     .build();
 
             ExtractUserMemoryResponse response = blockingStub
-                    .withDeadlineAfter(180, TimeUnit.SECONDS)
+                    .withDeadlineAfter(300, TimeUnit.SECONDS)
                     .extractUserMemory(request);
 
             if (response.getError() != null && !response.getError().isEmpty()) {

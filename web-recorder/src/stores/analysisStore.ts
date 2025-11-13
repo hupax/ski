@@ -1,6 +1,8 @@
 // Analysis Store - Manages analysis results and WebSocket connection
 import { create } from 'zustand'
 import type { AnalysisResult } from '../types'
+import { fetchWithAuth } from '../services/authInterceptor'
+import { API_BASE_URL } from '../config/constants'
 
 interface AnalysisState {
   // WebSocket connection
@@ -12,10 +14,14 @@ interface AnalysisState {
   addResult: (result: AnalysisResult) => void
   updateResult: (windowIndex: number, content: string) => void
   clearResults: () => void
+  setResults: (results: AnalysisResult[]) => void
 
   // Loading state
   isAnalyzing: boolean
   setIsAnalyzing: (analyzing: boolean) => void
+
+  // Actions
+  fetchSessionRecords: (sessionId: number) => Promise<void>
 }
 
 export const useAnalysisStore = create<AnalysisState>((set) => ({
@@ -61,7 +67,42 @@ export const useAnalysisStore = create<AnalysisState>((set) => ({
 
   clearResults: () => set({ results: [] }),
 
+  setResults: (results) => set({ results }),
+
   // Analysis state
   isAnalyzing: false,
   setIsAnalyzing: (analyzing) => set({ isAnalyzing: analyzing }),
+
+  // Fetch session records from API
+  fetchSessionRecords: async (sessionId: number) => {
+    try {
+      set({ isAnalyzing: true })
+      console.log('[AnalysisStore] Fetching records for session:', sessionId)
+
+      const response = await fetchWithAuth(
+        `${API_BASE_URL}/api/videos/sessions/${sessionId}/records`
+      )
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch session records')
+      }
+
+      const records = await response.json()
+      console.log('[AnalysisStore] Fetched records:', records)
+
+      // Transform API response to AnalysisResult format
+      const results: AnalysisResult[] = records.map((record: any) => ({
+        windowIndex: record.windowIndex,
+        content: record.content,  // Backend already returns refined content as "content"
+        timestamp: new Date(record.createdAt).toISOString(),
+      }))
+
+      console.log('[AnalysisStore] Transformed results:', results)
+
+      set({ results, isAnalyzing: false })
+    } catch (error) {
+      console.error('[AnalysisStore] Failed to fetch session records:', error)
+      set({ results: [], isAnalyzing: false })
+    }
+  },
 }))

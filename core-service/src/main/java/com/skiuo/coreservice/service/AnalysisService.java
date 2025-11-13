@@ -156,4 +156,14 @@ public class AnalysisService {
                 .filter(content -> content != null && !content.isEmpty())
                 .toList();
     }
+
+    /**
+     * Delete all analysis records for a session
+     */
+    @Transactional
+    public void deleteSessionRecords(Long sessionId) {
+        List<AnalysisRecord> records = analysisRecordRepository.findBySessionIdOrderByCreatedAtAsc(sessionId);
+        analysisRecordRepository.deleteAll(records);
+        log.info("Deleted {} analysis records for session {}", records.size(), sessionId);
+    }
 }

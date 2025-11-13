@@ -241,14 +241,21 @@ class GeminiAnalyzer(VideoAnalyzer):
             )
 
             memory_json = response.text.strip()
+            logger.info(f"Raw Gemini response for memory extraction: '{memory_json}'")
 
             # Validate JSON format
             try:
+                # Try to extract JSON if wrapped in markdown code block
+                if memory_json.startswith("```json") and memory_json.endswith("```"):
+                    memory_json = memory_json[7:-3].strip()
+                elif memory_json.startswith("```") and memory_json.endswith("```"):
+                    memory_json = memory_json[3:-3].strip()
+
                 json.loads(memory_json)
                 logger.info(f"Extracted memory length: {len(memory_json)}")
                 return memory_json
             except json.JSONDecodeError as je:
-                logger.warning(f"Invalid JSON returned, using empty structure: {je}")
+                logger.warning(f"Invalid JSON returned: '{memory_json}', error: {je}")
                 return json.dumps({
                     "habits": {},
                     "knowledge": {},

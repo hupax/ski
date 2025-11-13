@@ -79,6 +79,9 @@ function App() {
         setAuth(accessToken, refreshToken, userInfo)
         console.log('OAuth login successful:', userInfo.email)
 
+        // Fetch sessions after login
+        fetchSessions()
+
         // Clean URL
         window.history.replaceState({}, '', '/')
       } catch (e) {
@@ -87,7 +90,7 @@ function App() {
         window.history.replaceState({}, '', '/')
       }
     }
-  }, [setAuth])
+  }, [setAuth, fetchSessions])
 
   // Debug: Log active session ID changes
   useEffect(() => {
@@ -120,8 +123,11 @@ function App() {
         console.error('Failed to fetch server config, using defaults:', error)
       }
 
-      // Fetch sessions
-      await fetchSessions()
+      // Fetch sessions only if user is logged in
+      const authState = useAuthStore.getState()
+      if (authState.user && authState.accessToken) {
+        await fetchSessions()
+      }
     }
 
     initializeApp()

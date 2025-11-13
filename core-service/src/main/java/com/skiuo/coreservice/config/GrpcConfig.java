@@ -30,8 +30,10 @@ public class GrpcConfig {
                 .forAddress(aiServiceHost, aiServicePort)
                 .usePlaintext()
                 .maxInboundMessageSize(maxInboundMessageSize)
-                .keepAliveTime(30, TimeUnit.SECONDS)
-                .keepAliveTimeout(10, TimeUnit.SECONDS)
+                .keepAliveTime(60, TimeUnit.SECONDS)
+                .keepAliveTimeout(30, TimeUnit.SECONDS)
+                .keepAliveWithoutCalls(true)
+                .idleTimeout(10, TimeUnit.MINUTES)
                 .build();
     }
 }

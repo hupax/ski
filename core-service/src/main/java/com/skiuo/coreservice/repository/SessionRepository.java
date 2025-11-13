@@ -12,6 +12,8 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
 
     List<Session> findByUserIdOrderByCreatedAtDesc(Long userId);
 
+    List<Session> findByUserIdOrderByUpdatedAtDesc(Long userId);
+
     List<Session> findByStatus(Session.SessionStatus status);
 
     Optional<Session> findByIdAndUserId(Long id, Long userId);

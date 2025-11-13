@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { useSessionStore } from '../stores'
-import { TrashIcon, VideoIcon } from './icons'
 import { SidebarHeader } from './SidebarHeader'
+import { SessionItem } from './SessionItem'
+import SessionOptionsMenu from './SessionOptionsMenu'
 
 interface SidebarProps {
   onSessionSelect: (sessionId: number) => void
@@ -11,8 +12,10 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onSessionSelect, onClose, onNewRecording, onTest }: SidebarProps) {
-  const { sessions, currentSessionId, deleteSession } = useSessionStore()
+  const { sessions, currentSessionId } = useSessionStore()
   const [showSeparator, setShowSeparator] = useState(false)
+  const [activeMenuSessionId, setActiveMenuSessionId] = useState<number | null>(null)
+  const [renamingSessionId, setRenamingSessionId] = useState<number | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const buttonRefs = useRef<{ [key: number]: HTMLButtonElement | null }>({})
 
@@ -63,23 +66,19 @@ export function Sidebar({ onSessionSelect, onClose, onNewRecording, onTest }: Si
     onSessionSelect(sessionId)
   }
 
-  const handleDeleteClick = (e: React.MouseEvent, sessionId: number) => {
+  const handleOptionsClick = (e: React.MouseEvent, sessionId: number) => {
+    e.preventDefault()
     e.stopPropagation()
-    if (confirm('Delete this session?')) {
-      deleteSession(sessionId)
-    }
+    setActiveMenuSessionId(activeMenuSessionId === sessionId ? null : sessionId)
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diff = now.getTime() - date.getTime()
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  const handleMenuClose = () => {
+    setActiveMenuSessionId(null)
+  }
 
-    if (days === 0) return 'Today'
-    if (days === 1) return 'Yesterday'
-    if (days < 7) return `${days} days ago`
-    return date.toLocaleDateString()
+  const handleStartRename = (sessionId: number) => {
+    setRenamingSessionId(sessionId)
+    setActiveMenuSessionId(null)
   }
 
   return (
@@ -111,48 +110,32 @@ export function Sidebar({ onSessionSelect, onClose, onNewRecording, onTest }: Si
             </div>
           ) : (
             sessions.map((session) => (
-              <button
+              <SessionItem
                 key={session.id}
-                ref={(el) => (buttonRefs.current[session.id] = el)}
-                onClick={() => handleSessionClick(session.id)}
-                className={`group w-full flex items-start justify-between px-3 py-2 rounded-xl cursor-pointer transition-colors ${
-                  currentSessionId === session.id
-                    ? 'bg-[rgb(239,239,239)]'
-                    : 'hover:bg-[rgb(239,239,239)]'
-                }`}
-              >
-                <div className="flex items-start gap-2 flex-1 min-w-0">
-                  <div className="flex-shrink-0 mt-0.5">
-                    <VideoIcon width={16} height={16} className="text-gray-600" />
-                  </div>
-                  <div className="flex-1 min-w-0 text-left">
-                    <div className="text-sm font-medium text-gray-900 truncate">
-                      {formatDate(session.startTime)}
-                    </div>
-                    <div className="text-xs text-gray-500 truncate">
-                      {session.aiModel} • {session.analysisMode}
-                    </div>
-                    <div className="text-xs text-gray-400 mt-0.5">
-                      {session.totalChunks} chunks
-                    </div>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={(e) => handleDeleteClick(e, session.id)}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-200 transition-colors"
-                    aria-label="Delete session"
-                  >
-                    <TrashIcon width={14} height={14} className="text-gray-600" />
-                  </button>
-                </div>
-              </button>
+                session={session}
+                isActive={currentSessionId === session.id}
+                isRenaming={renamingSessionId === session.id}
+                onSelect={handleSessionClick}
+                onOptionsClick={handleOptionsClick}
+                onRenameComplete={() => setRenamingSessionId(null)}
+                buttonRef={(el) => (buttonRefs.current[session.id] = el)}
+              />
             ))
           )}
         </div>
       </div>
+
+      {/* Session options menu */}
+      {activeMenuSessionId && (
+        <SessionOptionsMenu
+          sessionId={activeMenuSessionId}
+          sessionTitle={sessions.find(s => s.id === activeMenuSessionId)?.title || ''}
+          isOpen={true}
+          onClose={handleMenuClose}
+          onRename={handleStartRename}
+          buttonRef={{ current: buttonRefs.current[activeMenuSessionId] || null }}
+        />
+      )}
     </div>
   )
 }

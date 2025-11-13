@@ -1,5 +1,8 @@
 # CLAUDE.md
 # 第一, 用户没有明确说明就不要写任何的文档和sh脚本!!!!!!!
+# 第二, 用户一般说中文, 比较难理解, 所以要至少读三遍用户说的话, 要彻底理解用户的意思再干活!!!!!
+# 第三, 切记不要靠瞎猜去浪费 token , 不要瞎猜问题, 然后一次一次的改去验证你的猜测, 实在不能确定就写命令测试!!!!!
+# 第四, 当有成功和失败的案例时, 直接对比所有相关代码找差异, 而不是局限于某一点反复猜测。
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -56,6 +59,12 @@ web-recorder (React) → auth-service (Spring Boot) → User Auth
 - DashScope SDK for Qwen (required for video URL support)
 - Google GenAI SDK for Gemini
 - Streaming AI responses back to core-service
+- Two-stage analysis pipeline: VL model (video analysis) → text model (error refinement)
+
+**common** (shared library):
+- Spring Boot module with shared DTOs and exceptions
+- Used by both auth-service and core-service
+- Contains ApiResponse, BusinessException, and common data structures
 
 ## Environment Configuration
 

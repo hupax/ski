@@ -26,7 +26,7 @@ export function LogoutConfirmModal({ isOpen, userEmail, onConfirm, onCancel }: L
               Are you sure you want to log out?
             </h2>
             <p className="text-gray-600 text-base mb-8 leading-relaxed">
-              Log out of ChatGPT as {userEmail}?
+              Log out of Skiuo as {userEmail}?
             </p>
           </div>
 

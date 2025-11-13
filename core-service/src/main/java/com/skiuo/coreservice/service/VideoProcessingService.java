@@ -213,19 +213,21 @@ public class VideoProcessingService {
     private void appendToMasterVideo(Session session, String chunkPath, Double chunkDuration) {
         try {
             if (session.getMasterVideoPath() == null) {
-                // First chunk: copy as master video
+                // First chunk: convert to VP9 (required for Qwen API)
+                // Browser MediaRecorder generates VP8, but Qwen only supports VP9
                 String masterPath = videoConfig.getTempPath() + "/" + session.getId() + "/master_video.webm";
                 java.nio.file.Path sessionDir = java.nio.file.Paths.get(videoConfig.getTempPath(), session.getId().toString());
                 if (!java.nio.file.Files.exists(sessionDir)) {
                     java.nio.file.Files.createDirectories(sessionDir);
                 }
-                
-                java.nio.file.Files.copy(
-                        java.nio.file.Paths.get(chunkPath),
-                        java.nio.file.Paths.get(masterPath),
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING
+
+                // Use single-video "concat" to convert VP8 to VP9
+                // This ensures master_video is always VP9 for Qwen compatibility
+                grpcClientService.concatVideos(
+                        List.of(chunkPath),  // Single video "concat" = conversion
+                        masterPath
                 );
-                
+
                 session.setMasterVideoPath(masterPath);
 
                 // Get actual video duration from FFmpeg
@@ -233,7 +235,7 @@ public class VideoProcessingService {
                 session.setCurrentVideoLength(actualDuration);
                 session.setLastWindowStartTime((double) -videoConfig.getWindowStep());
 
-                log.info("Created master video: path={}, length={}s (actual from FFmpeg)", masterPath, actualDuration);
+                log.info("Created master video (converted to VP9): path={}, length={}s (actual from FFmpeg)", masterPath, actualDuration);
             } else {
                 // Subsequent chunks: concatenate to master video
                 String tempOutput = videoConfig.getTempPath() + "/" + session.getId() + "/master_temp.webm";

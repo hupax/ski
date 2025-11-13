@@ -264,13 +264,18 @@ class VideoProcessor:
                     f.write(f"file '{abs_path}'\n")
 
             # Concatenate using FFmpeg
+            # IMPORTANT: Must re-encode to VP9 because Qwen API does not support VP8
+            # Browser MediaRecorder generates VP8, but Qwen only accepts VP9
             cmd = [
                 'ffmpeg',
                 '-y',
                 '-f', 'concat',
                 '-safe', '0',
                 '-i', concat_list_path,
-                '-c', 'copy',  # Copy without re-encoding for speed
+                '-c:v', 'libvpx-vp9',  # Re-encode to VP9 (required for Qwen API)
+                '-c:a', 'libopus',      # Keep Opus audio codec
+                '-b:v', '1M',           # Video bitrate
+                '-crf', '30',           # Quality (lower = better quality, range 0-63)
                 output_path
             ]
 
@@ -316,8 +321,14 @@ class VideoProcessor:
         try:
             # Validate time range
             video_duration = self._get_video_duration(video_path)
-            if start_time < 0 or end_time > video_duration or start_time >= end_time:
+            # Allow small tolerance (0.1s) for floating point precision issues
+            tolerance = 0.1
+            if start_time < 0 or end_time > video_duration + tolerance or start_time >= end_time:
                 raise ValueError(f"Invalid time range: [{start_time}, {end_time}] for video duration {video_duration}s")
+
+            # Clamp end_time to video_duration to avoid FFmpeg errors
+            if end_time > video_duration:
+                end_time = video_duration
 
             # Extract segment using FFmpeg
             # Use -ss before -i for faster seeking (input seeking)

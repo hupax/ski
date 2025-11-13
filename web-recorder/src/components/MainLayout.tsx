@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react'
 import { Navbar } from './Navbar'
 import { Sidebar } from './Sidebar'
-import { useUIStore, useSessionStore } from '../stores'
+import { useUIStore, useSessionStore, useAnalysisStore } from '../stores'
 
 interface MainLayoutProps {
   children: ReactNode
@@ -12,10 +12,12 @@ interface MainLayoutProps {
 export function MainLayout({ children, onNewRecording, onTest }: MainLayoutProps) {
   const { isSidebarOpen, setSidebarOpen, toggleSidebar } = useUIStore()
   const { setCurrentSessionId } = useSessionStore()
+  const { fetchSessionRecords } = useAnalysisStore()
 
-  const handleSessionSelect = (sessionId: number) => {
+  const handleSessionSelect = async (sessionId: number) => {
     setCurrentSessionId(sessionId)
-    // TODO: Load session analysis results
+    // Load session analysis results
+    await fetchSessionRecords(sessionId)
   }
 
   return (

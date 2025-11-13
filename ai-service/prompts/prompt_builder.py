@@ -34,39 +34,16 @@ class PromptBuilder:
         Build prompt for the first window (no context)
 
         Args:
-            include_scenario_hint: Whether to include scenario-specific hints
+            include_scenario_hint: Whether to include scenario-specific hints (deprecated, kept for compatibility)
             user_memory: User memory JSON string
 
         Returns:
             Complete prompt string
         """
-        if self.language == 'zh':
-            template = base_prompts.FIRST_WINDOW_PROMPT_ZH
-            system_role = base_prompts.SYSTEM_ROLE_ZH
-            core_req = base_prompts.CORE_REQUIREMENTS_ZH
-            focus = base_prompts.FOCUS_POINTS_ZH
-        else:
-            template = base_prompts.FIRST_WINDOW_PROMPT_EN
-            system_role = base_prompts.SYSTEM_ROLE_EN
-            core_req = base_prompts.CORE_REQUIREMENTS_EN
-            focus = base_prompts.FOCUS_POINTS_EN
-
-        # Add scenario enhancement if requested
-        scenario_hint = ""
-        if include_scenario_hint and self.language == 'zh':
-            scenario_hint = self._get_scenario_enhancement_zh()
-
-        # Add user memory context
+        template = base_prompts.FIRST_WINDOW_PROMPT_ZH if self.language == 'zh' else base_prompts.FIRST_WINDOW_PROMPT_EN
         user_memory_context = self._build_user_memory_context(user_memory)
 
-        prompt = template.format(
-            system_role=system_role,
-            core_requirements=core_req,
-            focus_points=focus + scenario_hint,
-            user_memory_context=user_memory_context
-        )
-
-        return prompt
+        return template.format(user_memory_context=user_memory_context)
 
     def build_subsequent_window_prompt(
             self,
@@ -79,40 +56,19 @@ class PromptBuilder:
 
         Args:
             context: Previous analysis result
-            include_scenario_hint: Whether to include scenario-specific hints
+            include_scenario_hint: Whether to include scenario-specific hints (deprecated, kept for compatibility)
             user_memory: User memory JSON string
 
         Returns:
             Complete prompt string
         """
-        if self.language == 'zh':
-            template = base_prompts.SUBSEQUENT_WINDOW_PROMPT_ZH
-            system_role = base_prompts.SYSTEM_ROLE_ZH
-            core_req = base_prompts.CORE_REQUIREMENTS_ZH
-            focus = base_prompts.FOCUS_POINTS_ZH
-        else:
-            template = base_prompts.SUBSEQUENT_WINDOW_PROMPT_EN
-            system_role = base_prompts.SYSTEM_ROLE_EN
-            core_req = base_prompts.CORE_REQUIREMENTS_EN
-            focus = base_prompts.FOCUS_POINTS_EN
-
-        # Add scenario enhancement if requested
-        scenario_hint = ""
-        if include_scenario_hint and self.language == 'zh':
-            scenario_hint = self._get_scenario_enhancement_zh()
-
-        # Add user memory context
+        template = base_prompts.SUBSEQUENT_WINDOW_PROMPT_ZH if self.language == 'zh' else base_prompts.SUBSEQUENT_WINDOW_PROMPT_EN
         user_memory_context = self._build_user_memory_context(user_memory)
 
-        prompt = template.format(
+        return template.format(
             context=context,
-            system_role=system_role,
-            core_requirements=core_req,
-            focus_points=focus + scenario_hint,
             user_memory_context=user_memory_context
         )
-
-        return prompt
 
     def build_full_video_prompt(
             self,
@@ -123,49 +79,16 @@ class PromptBuilder:
         Build prompt for full video analysis
 
         Args:
-            include_scenario_hint: Whether to include scenario-specific hints
+            include_scenario_hint: Whether to include scenario-specific hints (deprecated, kept for compatibility)
             user_memory: User memory JSON string
 
         Returns:
             Complete prompt string
         """
-        if self.language == 'zh':
-            template = base_prompts.FULL_VIDEO_PROMPT_ZH
-            system_role = base_prompts.SYSTEM_ROLE_ZH
-            core_req = base_prompts.CORE_REQUIREMENTS_ZH
-            focus = base_prompts.FOCUS_POINTS_ZH
-        else:
-            template = base_prompts.FULL_VIDEO_PROMPT_EN
-            system_role = base_prompts.SYSTEM_ROLE_EN
-            core_req = base_prompts.CORE_REQUIREMENTS_EN
-            focus = base_prompts.FOCUS_POINTS_EN
-
-        # Add scenario enhancement if requested
-        scenario_hint = ""
-        if include_scenario_hint and self.language == 'zh':
-            scenario_hint = self._get_scenario_enhancement_zh()
-
-        # Add user memory context
+        template = base_prompts.FULL_VIDEO_PROMPT_ZH if self.language == 'zh' else base_prompts.FULL_VIDEO_PROMPT_EN
         user_memory_context = self._build_user_memory_context(user_memory)
 
-        prompt = template.format(
-            system_role=system_role,
-            core_requirements=core_req,
-            focus_points=focus + scenario_hint,
-            user_memory_context=user_memory_context
-        )
-
-        return prompt
-
-    def _get_scenario_enhancement_zh(self) -> str:
-        """Get scenario-specific enhancement prompt (Chinese)"""
-        enhancements = {
-            'programming': base_prompts.PROGRAMMING_ENHANCEMENT_ZH,
-            'crafts': base_prompts.CRAFTS_ENHANCEMENT_ZH,
-            'teaching': base_prompts.TEACHING_ENHANCEMENT_ZH,
-            'general': base_prompts.GENERAL_ENHANCEMENT_ZH
-        }
-        return enhancements.get(self.scenario, base_prompts.GENERAL_ENHANCEMENT_ZH)
+        return template.format(user_memory_context=user_memory_context)
 
     def _build_user_memory_context(self, user_memory: str) -> str:
         """Build user memory context section"""

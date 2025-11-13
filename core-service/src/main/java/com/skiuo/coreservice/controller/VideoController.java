@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -125,23 +126,163 @@ public class VideoController {
 
     /**
      * Get analysis records for a session
-     * GET /api/sessions/{sessionId}/records
+     * GET /api/videos/sessions/{sessionId}/records
      */
     @GetMapping("/sessions/{sessionId}/records")
-    public ResponseEntity<List<AnalysisRecordResponse>> getSessionRecords(@PathVariable Long sessionId) {
-        List<AnalysisRecord> records = analysisService.getSessionRecords(sessionId);
-        List<AnalysisRecordResponse> response = AnalysisRecordResponse.fromEntities(records);
+    public ResponseEntity<List<AnalysisRecordResponse>> getSessionRecords(
+            @RequestHeader("Authorization") String authorization,
+            @PathVariable Long sessionId) {
+        try {
+            // Validate token and get user
+            String token = authorization.replace("Bearer ", "");
+            AuthServiceClient.UserInfo user = authServiceClient.validateToken(token);
+
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            Long userId = user.getId();
+
+            // Verify session belongs to user
+            Session session = sessionRepository.findByIdAndUserId(sessionId, userId)
+                    .orElseThrow(() -> new IllegalArgumentException("Session not found or access denied"));
+
+            List<AnalysisRecord> records = analysisService.getSessionRecords(sessionId);
+            List<AnalysisRecordResponse> response = AnalysisRecordResponse.fromEntities(records);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            log.error("Failed to get session records: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Get current user sessions
+     * GET /api/videos/sessions
+     */
+    @GetMapping("/sessions")
+    public ResponseEntity<List<SessionListResponse>> getCurrentUserSessions(
+            @RequestHeader("Authorization") String authorization) {
+        try {
+            // Validate token and get user
+            String token = authorization.replace("Bearer ", "");
+            AuthServiceClient.UserInfo user = authServiceClient.validateToken(token);
+
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            Long userId = user.getId();
+            List<Session> sessions = sessionRepository.findByUserIdOrderByUpdatedAtDesc(userId);
+            List<SessionListResponse> response = SessionListResponse.fromEntities(sessions);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Failed to get user sessions: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Get user sessions by userId (for admin or specific use)
+     * GET /api/videos/users/{userId}/sessions
+     */
+    @GetMapping("/users/{userId}/sessions")
+    public ResponseEntity<List<SessionListResponse>> getUserSessions(@PathVariable Long userId) {
+        List<Session> sessions = sessionRepository.findByUserIdOrderByUpdatedAtDesc(userId);
+        List<SessionListResponse> response = SessionListResponse.fromEntities(sessions);
         return ResponseEntity.ok(response);
     }
 
     /**
-     * Get user sessions
-     * GET /api/users/{userId}/sessions
+     * Update session title
+     * PUT /api/videos/sessions/{sessionId}/title
      */
-    @GetMapping("/users/{userId}/sessions")
-    public ResponseEntity<List<Session>> getUserSessions(@PathVariable Long userId) {
-        List<Session> sessions = sessionRepository.findByUserIdOrderByCreatedAtDesc(userId);
-        return ResponseEntity.ok(sessions);
+    @PutMapping("/sessions/{sessionId}/title")
+    public ResponseEntity<Map<String, String>> updateSessionTitle(
+            @RequestHeader("Authorization") String authorization,
+            @PathVariable Long sessionId,
+            @RequestBody UpdateSessionTitleRequest request) {
+        try {
+            // Validate token and get user
+            String token = authorization.replace("Bearer ", "");
+            AuthServiceClient.UserInfo user = authServiceClient.validateToken(token);
+
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            Long userId = user.getId();
+
+            // Verify session belongs to user
+            Session session = sessionRepository.findByIdAndUserId(sessionId, userId)
+                    .orElseThrow(() -> new IllegalArgumentException("Session not found or access denied"));
+
+            // Update title
+            session.setTitle(request.getTitle());
+            sessionRepository.save(session);
+
+            log.info("Updated session {} title to: {}", sessionId, request.getTitle());
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Session title updated"
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("status", "error", "message", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to update session title: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("status", "error", "message", "Internal server error"));
+        }
+    }
+
+    /**
+     * Delete session
+     * DELETE /api/videos/sessions/{sessionId}
+     */
+    @DeleteMapping("/sessions/{sessionId}")
+    @Transactional
+    public ResponseEntity<Map<String, String>> deleteSession(
+            @RequestHeader("Authorization") String authorization,
+            @PathVariable Long sessionId) {
+        try {
+            // Validate token and get user
+            String token = authorization.replace("Bearer ", "");
+            AuthServiceClient.UserInfo user = authServiceClient.validateToken(token);
+
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            Long userId = user.getId();
+
+            // Verify session belongs to user
+            Session session = sessionRepository.findByIdAndUserId(sessionId, userId)
+                    .orElseThrow(() -> new IllegalArgumentException("Session not found or access denied"));
+
+            // Delete related records
+            videoChunkRepository.deleteBySessionId(sessionId);
+            analysisService.deleteSessionRecords(sessionId);
+            sessionRepository.delete(session);
+
+            log.info("Deleted session {} for user {}", sessionId, userId);
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Session deleted"
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("status", "error", "message", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to delete session: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("status", "error", "message", "Internal server error"));
+        }
     }
 
     /**

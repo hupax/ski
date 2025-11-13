@@ -1,18 +1,18 @@
 // Session Store - Manages recording sessions and history
 import { create } from 'zustand'
 import type { SessionStatusResponse } from '../types'
+import { fetchWithAuth } from '../services/authInterceptor'
+import { API_BASE_URL } from '../config/constants'
 
 interface Session {
   id: number
-  userId: number
+  title: string  // AI-generated title or "Untitled Session"
   status: string
   aiModel: string
   analysisMode: string
-  keepVideo: boolean
   startTime: string
   endTime?: string
-  totalChunks: number
-  analyzedChunks: number
+  updatedAt: string
 }
 
 interface SessionState {
@@ -38,6 +38,8 @@ interface SessionState {
   // Actions
   fetchSessions: () => Promise<void>
   selectSession: (id: number) => void
+  renameSession: (id: number, newTitle: string) => Promise<void>
+  deleteSessionById: (id: number) => Promise<void>
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -76,16 +78,18 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     setError(null)
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/sessions')
-      // const data = await response.json()
-      // setSessions(data)
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/videos/sessions`)
 
-      // Mock data for now
-      setSessions([])
+      if (!response.ok) {
+        throw new Error('Failed to fetch sessions')
+      }
+
+      const data = await response.json()
+      setSessions(data)
     } catch (error) {
       console.error('Failed to fetch sessions:', error)
       setError('Failed to load sessions')
+      setSessions([])  // Clear sessions on error
     } finally {
       setIsLoading(false)
     }
@@ -93,5 +97,51 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   selectSession: (id) => {
     set({ currentSessionId: id })
+  },
+
+  renameSession: async (id, newTitle) => {
+    const { updateSession, setError } = get()
+    setError(null)
+
+    try {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/videos/sessions/${id}/title`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title: newTitle }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to rename session')
+      }
+
+      updateSession(id, { title: newTitle })
+    } catch (error) {
+      console.error('Failed to rename session:', error)
+      setError('Failed to rename session')
+      throw error
+    }
+  },
+
+  deleteSessionById: async (id) => {
+    const { deleteSession, setError } = get()
+    setError(null)
+
+    try {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/videos/sessions/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete session')
+      }
+
+      deleteSession(id)
+    } catch (error) {
+      console.error('Failed to delete session:', error)
+      setError('Failed to delete session')
+      throw error
+    }
   },
 }))

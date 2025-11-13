@@ -179,13 +179,15 @@ class QwenAnalyzer(VideoAnalyzer):
             )
 
             # Call Qwen API (text-only, non-streaming, use text model)
+            # Use Generation API for qwen-max (text models)
             response = dashscope.Generation.call(
                 model=self.text_model,
-                prompt=prompt
+                messages=[{'role': 'user', 'content': prompt}]
             )
 
             if response.status_code == 200:
-                title = response.output.text.strip()
+                # For Generation API, response is in output['text']
+                title = response.output.get('text', '').strip()
                 logger.info(f"Generated title: {title}")
                 return title
             else:
@@ -229,13 +231,15 @@ class QwenAnalyzer(VideoAnalyzer):
             )
 
             # Call Qwen API (text-only, non-streaming, use text model)
+            # Use Generation API for qwen-max (text models)
             response = dashscope.Generation.call(
                 model=self.text_model,
-                prompt=prompt
+                messages=[{'role': 'user', 'content': prompt}]
             )
 
             if response.status_code == 200:
-                refined = response.output.text.strip()
+                # For Generation API, response is in output['text']
+                refined = response.output.get('text', '').strip()
                 logger.info(f"Refined content length: {len(refined)}")
                 return refined
             else:
@@ -273,21 +277,30 @@ class QwenAnalyzer(VideoAnalyzer):
             )
 
             # Call Qwen API (text-only, non-streaming, use text model)
+            # Use Generation API for qwen-max (text models)
             response = dashscope.Generation.call(
                 model=self.text_model,
-                prompt=prompt
+                messages=[{'role': 'user', 'content': prompt}]
             )
 
             if response.status_code == 200:
-                memory_json = response.output.text.strip()
+                # For Generation API, response is in output['text']
+                memory_json = response.output.get('text', '').strip()
+                logger.info(f"Raw Qwen response for memory extraction: '{memory_json}'")
 
                 # Validate JSON format
                 try:
+                    # Try to extract JSON if wrapped in markdown code block
+                    if memory_json.startswith("```json") and memory_json.endswith("```"):
+                        memory_json = memory_json[7:-3].strip()
+                    elif memory_json.startswith("```") and memory_json.endswith("```"):
+                        memory_json = memory_json[3:-3].strip()
+
                     json.loads(memory_json)
                     logger.info(f"Extracted memory length: {len(memory_json)}")
                     return memory_json
                 except json.JSONDecodeError as je:
-                    logger.warning(f"Invalid JSON returned, using empty structure: {je}")
+                    logger.warning(f"Invalid JSON returned: '{memory_json}', error: {je}")
                     return json.dumps({
                         "habits": {},
                         "knowledge": {},
