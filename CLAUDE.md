@@ -206,6 +206,48 @@ Storage service responsibilities:
 
 **Why storage is required**: Qwen and Gemini are cloud APIs that need public URLs to access videos. They cannot access local file paths.
 
+### Two-Stage AI Analysis Pipeline
+
+To improve accuracy, each video window goes through a two-stage analysis process:
+
+1. **Stage 1 (Vision-Language Model)**: VL model (Qwen VL Max / Gemini) analyzes the video and generates raw content
+2. **Stage 2 (Text Model Refinement)**: Text model (Qwen Max / Gemini) refines the raw content to fix obvious errors
+
+This two-stage approach improves accuracy from ~85% to ~97% (based on manual evaluation), at the cost of 5-10 seconds additional latency per window. The refinement model uses specialized prompts to fix common VL model errors like hallucinations and temporal inconsistencies.
+
+Implementation:
+- Raw content is saved to `analysis_records.raw_content`
+- Refined content is saved to `analysis_records.refined_content`
+- Only refined content is sent to frontend via WebSocket
+- Refinement happens via gRPC `RefineAnalysis` call with video metadata
+
+### User Memory System
+
+The system automatically builds and maintains user profiles to personalize analysis:
+
+**Storage**: JSONB column `memory_data` in `user_memory` table with flexible schema:
+```json
+{
+  "habits": {"programming_languages": ["Python", "TypeScript"]},
+  "knowledge": {"expertise_areas": ["web development", "AI"]},
+  "behavior_patterns": {"coding_style": "prefers functional programming"}
+}
+```
+
+**Workflow**:
+1. Session completes → Extract user memory from all analysis results via gRPC `ExtractUserMemory`
+2. Merge new memory with existing memory (AI decides what to keep/update/add)
+3. Save to database for the user
+4. Future sessions: Load user memory and pass to AI models for personalized analysis
+
+**Benefits**: AI can reference user's known skills, preferences, and context to generate more relevant descriptions.
+
+### Automatic Title Generation
+
+When a session completes (isLastChunk=true), the system automatically generates a concise title (≤10 characters) via gRPC `GenerateTitle`. The title is displayed in the session history sidebar for easy identification.
+
+Example titles: "C++解两数之和", "React组件优化", "数据库设计"
+
 ### AI Service Implementation
 
 **Qwen-specific requirement**: Must use DashScope native SDK, not OpenAI-compatible endpoints. Only DashScope SDK supports video URL analysis.
@@ -453,20 +495,25 @@ The app uses **6 Zustand stores** for clean separation of concerns:
 ### core-service Key Classes
 
 - **VideoProcessingService**: Orchestrates video processing workflows, manages master video, triggers window analysis
-- **GrpcClientService**: Wrapper for all gRPC calls to ai-service
+- **GrpcClientService**: Wrapper for all gRPC calls to ai-service (9 methods: ProcessVideo, AnalyzeVideo, ExtractTail, ConcatVideos, ExtractSegment, GetVideoDuration, GenerateTitle, RefineAnalysis, ExtractUserMemory)
 - **StorageServiceFactory**: Returns appropriate storage service (MinIO/OSS/COS) based on config
 - **AnalysisService**: Saves analysis results to DB, streams to WebSocket via `/topic/session/{sessionId}`
 - **VideoUploadService**: Handles chunk uploads, session management, async task tracking
+- **SessionCompletionService**: Handles session finalization (title generation, memory extraction, cleanup)
+- **UserMemoryService**: Manages user memory CRUD operations and AI-based memory extraction
 - **CleanupService**: Deletes temporary files and storage objects
 
 ### ai-service Key Modules
 
-- **grpc_server.py**: gRPC service implementation, bridges sync gRPC with async AI calls
+- **grpc_server.py**: gRPC service implementation, bridges sync gRPC with async AI calls (9 service methods)
 - **video_processor.py**: FFmpeg operations (slicing, concatenation, extraction, duration)
 - **models/factory.py**: Returns appropriate analyzer (Qwen/Gemini) based on model name
 - **models/qwen_analyzer.py**: DashScope SDK integration with streaming support
 - **models/gemini_analyzer.py**: Google GenAI SDK integration with streaming support
-- **prompts/**: Prompt templates and builder logic
+- **prompts/base_prompts.py**: Prompt templates for analysis (language/scenario/mode-specific)
+- **prompts/prompt_builder.py**: Prompt construction logic with context and memory support
+- **prompts/analysis_refinement_prompts.py**: Prompts for stage 2 refinement
+- **prompts/title_generation_prompts.py**: Prompts for session title generation
 
 ### Database Schema
 
@@ -479,7 +526,8 @@ The app uses **6 Zustand stores** for clean separation of concerns:
 **core-service database**:
 - **sessions**: Recording sessions with status, mode, storage type, master video path
 - **video_chunks**: Individual uploaded chunks (less important after master video approach)
-- **analysis_records**: AI analysis results per window with time ranges, content
+- **analysis_records**: AI analysis results per window with time ranges, raw_content (stage 1), refined_content (stage 2)
+- **user_memory**: User personalization data (JSONB: habits, knowledge, behavior_patterns)
 - **user_config**: User preferences (currently minimal)
 
 ## Important Development Notes
@@ -519,33 +567,39 @@ The app uses **6 Zustand stores** for clean separation of concerns:
 
 10. **Session status flow**: ACTIVE → ANALYZING → COMPLETED (or FAILED)
 
-11. **UI Design Philosophy**:
+11. **isLastChunk mechanism**:
+    - Frontend sends `isLastChunk=true` with the final chunk upload
+    - Backend automatically triggers session finalization: title generation + memory extraction + cleanup
+    - Simplifies frontend logic, centralizes completion handling in backend
+    - SessionCompletionService waits for all async analysis tasks to complete before marking COMPLETED
+
+12. **UI Design Philosophy**:
     - Match Wrangler's clean, minimal aesthetic
     - Pure content focus (no decorative UI in analysis display)
     - Smooth animations (0.4s cubic-bezier transitions)
     - Push/pull sidebar (content gets pushed, not overlaid)
 
-12. **Test Mode Purpose**:
+13. **Test Mode Purpose**:
     - Simulates production recording flow exactly
     - Allows testing with pre-recorded chunks
     - Config options only in Test mode (production uses fixed defaults)
     - User sees identical experience: config → streaming analysis results
 
-13. **Authentication Flow**:
+14. **Authentication Flow**:
     - OAuth: User clicks OAuth button → redirect to provider → callback with code → exchange for tokens → redirect to frontend with tokens in URL → App.tsx parses tokens and saves to authStore
     - Email code: User enters email → send code → user enters code → backend validates → returns tokens → frontend saves to authStore
     - Token structure: JWT with claims (userId, email, username, avatarUrl, roles, jti)
     - Token refresh: Check every minute if access token expires within 5 minutes, auto-refresh if needed
     - Logout: Revoke access token (add to blacklist), delete refresh token from Redis, clear authStore
 
-14. **Avatar Display Logic**:
+15. **Avatar Display Logic**:
     - OAuth users: avatarUrl from provider stored in DB, included in JWT token
     - Non-OAuth users: avatarUrl = null, display first letter of username/email
     - Frontend checks `user.avatarUrl`: if exists, show `<img>`, else show `<span>` with initial
     - **Critical**: JWT tokens must include `avatarUrl` claim, old tokens without it show only initials
     - **Fix for missing avatars**: Clear all users (DB + Redis) + clear localStorage + re-login
 
-15. **Modal Design System**:
+16. **Modal Design System**:
     - All modals use same styling: `rounded-2xl` modal, `rounded-full` buttons
     - Custom border color: `rgb(229, 229, 229)` (between gray-200 and gray-300)
     - Minimal backdrop blur: `backdrop-blur-[0.5px]`
@@ -557,6 +611,11 @@ The app uses **6 Zustand stores** for clean separation of concerns:
 
 ```
 ski/
+├── common/                    # Shared Spring Boot library
+│   └── src/main/java/com/skiuo/common/
+│       ├── dto/               # Shared DTOs (ApiResponse, etc.)
+│       └── exception/         # Shared exceptions (BusinessException, etc.)
+│
 ├── auth-service/              # Spring Boot authentication service
 │   ├── src/main/java/com/skiuo/authservice/
 │   │   ├── controller/       # REST endpoints (AuthController, OAuthController, UserController)
